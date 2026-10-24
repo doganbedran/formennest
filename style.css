@@ -1,0 +1,341 @@
+/* Andika (SIL, Open Font License – fonts/OFL.txt): Schrift für Leseanfänger, mitgeliefert, damit jedes Gerät
+   gleich aussieht und es offline geht. latin = Deutsch; latin-ext nur bei Bedarf (z. B. ş, ğ, ẞ in Namen). */
+@font-face { font-family: 'Andika'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/andika-latin-400.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Andika'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/andika-latin-ext-400.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Andika'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/andika-latin-700.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Andika'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('fonts/andika-latin-ext-700.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+/* Farben laut Gestaltungsrichtlinie der Nest-Familie; Akzent von Formennest: Violett (Weiß darauf 7,0:1; deutlich
+   anders als Wortnest-Orange und Zahlennest-Petrol, auch bei Farbsehschwächen). Formen tragen ihre Unterschiede in
+   Gestalt und Helligkeit, nie nur in der Farbe. */
+:root {
+  --bg: #fdf6ec;
+  --papier: #ffffff;
+  --text: #4a3f35;
+  --leise: #5e5348;          /* leise-lesbar: 7,5:1 auf Weiß */
+  --rand: #eadfcf;
+  --akzent: #7a3e9d;
+  --akzent-hell: #efe4f5;
+  --gruen: #5cb85c;
+  --rot: #e05d5d;
+  --schatten: 0 4px 0 rgba(74, 63, 53, 0.12);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Andika", "Nunito", system-ui, sans-serif;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+[hidden] { display: none !important; }
+
+.screen {
+  display: none;
+  flex-direction: column;
+  height: 100dvh;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+}
+.screen.active { display: flex; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.topbar h2 { margin: 0; font-size: 1.3rem; }
+
+.icon-btn {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border: none;
+  border-radius: 20px;
+  background: var(--papier);
+  box-shadow: var(--schatten);
+  font-size: 2rem;
+  display: grid;
+  place-items: center;
+  transition: transform 0.1s;
+}
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn.small { width: 44px; height: 44px; font-size: 1.3rem; border-radius: 14px; opacity: 0.6; }
+
+/* Langes Drücken für Elternbereich: Fortschrittsring */
+.ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); pointer-events: none; }
+.ring circle {
+  fill: none; stroke: var(--akzent); stroke-width: 3;
+  stroke-dasharray: 101; stroke-dashoffset: 101;
+}
+.icon-btn.halten .ring circle { stroke-dashoffset: 0; transition: stroke-dashoffset 2s linear; }
+
+/* Startseite: große Spiel-Kacheln, ohne Scrollen (2 Spalten hochkant, 4 im Querformat) */
+.spiele-raster {
+  /* Spalten und Reihen setzt spieleZeigen() je nach Anzahl der Kacheln (alles passt immer auf eine Seite) */
+  --spalten: 2; --reihen: 1;
+  --kachel: min(180px, calc((100vw - 40px) / var(--spalten) - 18px), calc((100dvh - 140px) / var(--reihen) - 18px));
+  flex: 1; display: grid; gap: 18px; padding: 10px 0 30px;
+  grid-template-columns: repeat(var(--spalten), var(--kachel)); grid-auto-rows: var(--kachel);
+  justify-content: center; align-content: center;
+}
+.spiel-btn {
+  border: none; border-radius: 32px; background: var(--papier); box-shadow: var(--schatten);
+  font-size: calc(var(--kachel, 170px) * 0.46); display: grid; place-items: center; padding: 0;
+}
+.spiel-btn:active { transform: scale(0.94); }
+/* Bis Kinder/Regal geladen sind keine Spiel-Kacheln zeigen (sonst springen sie, und ein Kind trifft das falsche Spiel) */
+body.laedt #home .spiele-raster { visibility: hidden; }
+.home-leer { flex: 1; display: grid; place-items: center; }
+.home-leer img { width: min(60vw, 280px); }
+
+/* Spiel-Ende: großes Haus, kleineres Nochmal (kein automatisches Weiterspielen) */
+.spiel-ende {
+  position: fixed; left: 0; right: 0; bottom: max(40px, env(safe-area-inset-bottom)); z-index: 6;
+  display: flex; justify-content: center; align-items: center; gap: 28px;
+}
+.spiel-ende button { border: none; border-radius: 50%; background: var(--papier); box-shadow: var(--schatten); display: grid; place-items: center; }
+.spiel-ende .ende-home { width: 110px; height: 110px; font-size: 3.4rem; }
+.spiel-ende .ende-nochmal { --kachel: 84px; width: 84px; height: 84px; border-radius: 24px; font-size: calc(84px * 0.46);
+  position: relative; padding: 0; }
+.spiel-ende .ende-bild { display: grid; place-items: center; width: 100%; height: 100%; }
+.spiel-ende .ende-nochmal::after { content: '↻'; position: absolute; right: -8px; bottom: -8px; width: 34px; height: 34px;
+  border-radius: 50%; background: var(--akzent); color: #fff; font-size: 1.4rem; line-height: 34px; text-align: center;
+  font-weight: 700; box-shadow: var(--schatten); }
+/* Am Spielende nur 🏠 und Nochmal – das kleine 🏠 und 🔊 oben ausblenden */
+.screen.am-ende .topbar .icon-btn { visibility: hidden; }
+
+/* Pause: ruhiges Bild, nur 🏠 */
+.spiel-pause { position: fixed; inset: 0; z-index: 7; background: var(--bg); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 40px; }
+.spiel-pause .pause-bild { font-size: 8rem; animation: lauschen 4s ease-in-out infinite; }
+.spiel-pause .ende-home { width: 110px; height: 110px; font-size: 3.4rem; border: none; border-radius: 50%; background: var(--papier); box-shadow: var(--schatten); }
+@keyframes lauschen { 50% { transform: scale(1.12) rotate(-6deg); } }
+@media (prefers-reduced-motion: reduce) { .spiel-pause .pause-bild { animation: none; } }
+
+/* Wer spielt? */
+.wer-kopf { justify-content: center; }
+.wer-nest { height: 56px; }
+.wer-liste {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  align-content: center;
+  padding: 16px 0;
+}
+.wer-kachel {
+  border: none;
+  border-radius: 32px;
+  background: var(--papier);
+  box-shadow: var(--schatten);
+  padding: 24px 12px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: transform 0.1s;
+}
+.wer-kachel:active { transform: scale(0.95); }
+.wer-bild { font-size: 5.5rem; line-height: 1; }
+.wer-name { font-size: 1.5rem; font-weight: 700; }
+/* Fotos so groß wie ein Emoji in derselben Schriftgröße */
+.bild-datei.foto { height: 1.15em; width: 1.15em; object-fit: cover; border-radius: 0.18em; vertical-align: -0.2em; }
+
+/* Wer spielt gerade (oben links auf der Startseite) */
+.kind-btn {
+  width: 52px; height: 52px;
+  border: none; border-radius: 16px;
+  background: var(--papier); box-shadow: var(--schatten);
+  font-size: 2rem; line-height: 1;
+  display: grid; place-items: center;
+}
+.kind-btn:active { transform: scale(0.92); }
+
+/* Elternbereich */
+.eltern { font-family: system-ui, sans-serif; }
+.eltern-inhalt { flex: 1; overflow-y: auto; padding: 16px 0 24px; display: flex; flex-direction: column; gap: 16px; }
+.karte { background: var(--papier); border-radius: 16px; padding: 16px; box-shadow: var(--schatten); }
+.karte[hidden] { display: none; }
+.karte h3 { margin: 0 0 10px; font-size: 1.05rem; }
+.karte h3 small { font-weight: normal; color: var(--leise); }
+.hinweis { margin: 0 0 12px; color: var(--leise); font-size: 0.92rem; line-height: 1.4; }
+.hinweis b { color: var(--text); font-weight: 600; }
+.knopf-reihe { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.kinder-liste { display: flex; flex-direction: column; margin-bottom: 10px; }
+.kind-zeile {
+  display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 12px;
+  border: none; border-bottom: 1px solid var(--rand); background: none;
+  padding: 10px 0; text-align: left;
+}
+.kind-zeile:last-child { border-bottom: none; }
+.kind-zeile .kind-bild { font-size: 2.4rem; text-align: center; line-height: 1; }
+.kind-zeile .w { font-size: 1rem; line-height: 1.35; }
+.kind-zeile .w small { color: var(--leise); }
+.kind-zeile .pfeil { font-size: 1.2rem; }
+
+.tier-auswahl { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.tier {
+  aspect-ratio: 1; border: 2px solid var(--rand); border-radius: 14px;
+  background: var(--bg); font-size: 1.7rem;
+}
+.tier.gewaehlt { border-color: var(--akzent); background: var(--akzent-hell); }
+
+/* Spiele-Regal und Pausen-Wahl im Elternbereich: Name und kurze Erklärung */
+.regal-wahl { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin: 8px 0 12px; }
+.regal-spiel {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 14px;
+  border: 2px solid #e3d8c6; background: var(--papier); font: inherit; font-size: 0.95rem; text-align: left; opacity: 0.55;
+}
+.regal-spiel span { font-size: 1.6rem; }
+.regal-spiel b { font-weight: 600; }
+.regal-spiel small { flex-basis: 100%; font-size: 0.78rem; color: var(--leise); line-height: 1.3; padding-left: 2px; }
+.regal-spiel.gewaehlt { border-color: var(--akzent); background: var(--akzent-hell); opacity: 1; }
+
+.textfeld {
+  width: 100%; font: inherit; font-size: 1.05rem; padding: 10px 12px;
+  border: 1px solid var(--rand); border-radius: 12px; background: var(--bg); color: var(--text);
+}
+
+.text-btn { border: 1px solid var(--rand); background: var(--bg); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
+.text-btn.warnung { color: #b3261e; border-color: var(--rot); }
+
+/* Willkommen (erster Start, für Eltern) */
+.willkommen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  text-align: center; max-width: 440px; margin: 0 auto; padding: 20px 8px; overflow-y: auto; }
+.willkommen h2 { margin: 0; font-size: 1.8rem; }
+.willkommen p { margin: 0; line-height: 1.45; }
+.willkommen-bild { width: 150px; }
+.willkommen-btn { width: 100%; max-width: 320px; padding: 16px; border-radius: 20px; border: 3px solid #e3d8c6;
+  background: var(--papier); box-shadow: var(--schatten); font: inherit; font-size: 1.25rem; font-weight: 700; }
+.willkommen-btn.haupt { border-color: var(--akzent); background: var(--akzent-hell); }
+.willkommen-btn:active { transform: scale(0.97); }
+
+/* Über die App & Datenschutz */
+.info .karte p { margin: 0 0 10px; line-height: 1.5; font-size: 0.95rem; }
+.info .karte a { color: #1d5fbf; }
+
+/* ---------- Gemeinsame Spiel-Bausteine (aus Zahlennest): Runden-Eier, Karten, 👍 ---------- */
+/* Rundenpunkte als kleine Eier (nicht rund: sonst sähen sie aus wie die Mengen-Punkte) */
+.runden-eier { display: flex; gap: 12px; }
+.runden-eier .gruppe { display: flex; gap: 4px; }
+.runden-eier .gruppe span { width: 11px; height: 14px; border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
+  border: 2px solid #c7b08a; background: var(--papier); }
+/* gefüllt in der Akzentfarbe, nicht gelb: Gelb heißt im Spiel „dieser Punkt wird gerade gezählt“ */
+.runden-eier .gruppe span.voll { background: var(--akzent); border-color: var(--akzent); }
+.stufen-symbol { text-align: center; font-size: 3rem; margin: 10px 0 0; }
+.stufen-symbol.huepft { animation: huepfen 0.6s ease; }
+
+/* Karten: eine große (Stufe 1, 3, echte Welt) oder drei (Stufe 2: hochkant als Dreieck, quer als Reihe) */
+.mengen-karten { flex: 1; display: grid; gap: 24px; align-content: center; justify-content: center; padding: 0 18px; }
+.mengen-karten.einzeln { grid-template-columns: min(260px, 64vw, 38vh); }
+.mengen-karten.drei { grid-template-columns: repeat(2, min(160px, 38vw, 22vh)); }
+.mengen-karten.drei .mengen-karte:nth-child(3) { grid-column: 1 / -1; justify-self: center; width: min(160px, 38vw, 22vh); }
+@media (orientation: landscape) {
+  .mengen-karten.einzeln { grid-template-columns: min(300px, 50vh); }
+  .mengen-karten.drei { grid-template-columns: repeat(3, min(220px, 26vw, 46vh)); }
+  .mengen-karten.drei .mengen-karte:nth-child(3) { grid-column: auto; width: auto; justify-self: stretch; }
+}
+.mengen-karte { aspect-ratio: 1; border: none; border-radius: 28px; background: var(--papier); box-shadow: var(--schatten);
+  padding: 0; display: grid; place-items: center; transition: opacity 0.3s; }
+.mengen-karte svg { width: 100%; height: 100%; display: block; }
+.mengen-karte.kommt { animation: aufploppen 0.4s ease-out; }
+.mengen-karte.pulsiert { animation: warten-puls 1.6s ease-in-out infinite; }
+.mengen-karte.huepft { animation: huepfen 0.6s ease; }
+.mengen-karte.wackelt { animation: wackeln 0.6s ease; }
+.mengen-karte.blass { opacity: 0.35; }
+.mengen-karte.richtig { box-shadow: 0 0 0 6px var(--akzent); }
+/* Punkte und Finger: dunkel auf Weiß; Leuchten = gelb, heller und größer (nicht nur andere Farbe) */
+.menge-punkt { fill: #4a3f35; transform-box: fill-box; transform-origin: center; transition: fill 0.2s, transform 0.2s; }
+/* kaum größer: gleich große Punkte bleiben gleich groß (sonst vergleicht das Auge Flächen) */
+.menge-punkt.leuchtet { fill: #f5c518; stroke: #b07800; stroke-width: 2.5; transform: scale(1.05); }
+.hand { fill: #fff1dc; stroke: #4a3f35; stroke-width: 3; stroke-linejoin: round; }
+.finger { transform-box: fill-box; transform-origin: bottom; transition: fill 0.2s, transform 0.2s; }
+.finger.leuchtet { fill: #f5c518; transform: scale(1.06); }
+
+/* 👍 für Erwachsene: klein und ruhig unten rechts (kein Pulsieren – sonst hält das Kind ihn für „weiter“) */
+.daumen-platz { position: fixed; right: max(20px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 7; }
+.daumen-btn { width: 64px; height: 64px; border-radius: 50%; border: 3px solid #c7b08a; background: var(--papier);
+  box-shadow: var(--schatten); font-size: 2rem; opacity: 0.9; }
+
+/* Querformat auf dem Handy (niedrig): 👍 rechts unten statt unter der Karte, Symbol kleiner */
+@media (orientation: landscape) and (max-height: 600px) {
+  .stufen-symbol { font-size: 2rem; margin: 0; }
+}
+
+@keyframes aufploppen { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes huepfen { 30% { transform: translateY(-24px) scale(1.08); } 60% { transform: translateY(0) scale(1); } }
+@keyframes wackeln { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes warten-puls { 50% { transform: scale(1.05); box-shadow: 0 0 0 10px var(--akzent-hell); } }
+@media (prefers-reduced-motion: reduce) {
+  .mengen-karte.pulsiert { animation: none; box-shadow: 0 0 0 6px var(--akzent-hell); }
+}
+
+/* ---------- Auftrag in der echten Welt (alle Spiele) ---------- */
+/* Ruhiger Bildschirm: Hintergrund etwas gedämpft, groß 👐, darüber nur eine kleine, flache Erinnerungskarte –
+   ohne Schatten und ohne Aufploppen, damit nichts greifbar aussieht */
+.screen.ruhig { background: #f3ebde; }
+.in-echt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+  width: 100%; height: 100%; min-height: 40dvh; }
+#korb-feld .in-echt { position: absolute; inset: 0; }
+.in-echt-karte { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border: 3px solid #e3d8c6;
+  border-radius: 14px; background: transparent; }
+.in-echt-karte svg { height: min(76px, 11dvh); width: auto; display: block; }
+.in-echt-karte .karte-bild { font-size: min(3.2rem, 9dvh); line-height: 1; border-radius: 12px; padding: 2px 6px; }
+.in-echt-karte .karte-bild.leuchtet { box-shadow: 0 0 0 4px #f5c518; }
+.in-echt-karte .karte-punkt { fill: none; stroke: #4a3f35; stroke-width: 5; }
+.in-echt-karte .karte-punkt.leuchtet { fill: #f5c518; stroke: #b07800; }
+.in-echt-karte.wackelt { animation: wackeln 0.6s ease; }
+.in-echt-haende { font-size: min(8rem, 20dvh); line-height: 1; }
+.karte-becher { position: relative; display: inline-block; height: min(76px, 11dvh); aspect-ratio: 1; }
+.karte-becher svg { position: absolute; inset: 0; height: 100%; width: 100%; }
+
+/* ---------- Stimmen: Menschen, Studio ---------- */
+.stimme-wahl { display: flex; flex-direction: column; }
+.stimme-zeile { gap: 10px; }
+.mensch-bild { display: inline-flex; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; align-items: center;
+  justify-content: center; font-size: 1.4rem; background: #f3ead9; flex: none; }
+.mensch-bild img { width: 100%; height: 100%; object-fit: cover; }
+.mensch-bild.gross { width: 72px; height: 72px; font-size: 2.4rem; }
+.mensch-foto-reihe { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.studio-reiter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.studio-reiter button { flex: 1 1 40%; border: 2px solid var(--rand); border-radius: 14px; background: var(--papier);
+  padding: 8px 6px; font: inherit; font-size: 0.9rem; color: var(--text); }
+.studio-reiter button.aktiv { border-color: var(--akzent); background: var(--akzent-hell); }
+.studio-balken { height: 8px; border-radius: 4px; background: var(--rand); overflow: hidden; margin-bottom: 12px; }
+.studio-balken span { display: block; height: 100%; width: 0; background: var(--akzent); transition: width 0.3s; }
+.studio-karte { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.studio-text { font-size: 1.6rem; font-weight: 700; line-height: 1.3; }
+.studio-text.eigen::after { content: ' ✓'; color: #1b7f3a; }
+.studio-mikro {
+  width: 104px; height: 104px; border-radius: 50%; border: 4px solid #c7b08a; background: var(--papier);
+  box-shadow: var(--schatten); font-size: 3rem; touch-action: none; user-select: none; -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.studio-mikro.aktiv { border-color: var(--rot); background: #fde2dc; animation: mikro-pulsieren 1s infinite; }
+@keyframes mikro-pulsieren { 50% { transform: scale(1.06); } }
+.studio-pegel { width: 160px; height: 8px; border-radius: 4px; background: var(--rand); overflow: hidden; }
+.studio-pegel span { display: block; height: 100%; width: 0; background: var(--akzent); transition: width 0.06s linear; }
+.studio-meldung { min-height: 2.6em; margin: 0; }
+.studio-meldung.warnung { color: #b8470b; }
+.studio-gut:not(:disabled) { border-color: var(--akzent); color: var(--akzent); font-weight: 700; }
+.studio-nav { opacity: 0.85; }
+
+/* 👍 gedrückt halten: ein Ring füllt sich in DAUMEN_HALTEN ms */
+.daumen-btn { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.daumen-btn.haelt { animation: daumen-fuellen 0.9s linear forwards; }
+@keyframes daumen-fuellen { from { box-shadow: 0 0 0 0 var(--akzent-hell); } to { box-shadow: 0 0 0 12px var(--akzent); } }

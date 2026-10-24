@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <!-- Sicherheit (wie Wortnest): nur eigene Dateien; kein eingebetteter oder fremder Code, nichts geht an fremde Adressen
+       (Fotos kommen als blob:/data: vom Gerät). Beschrieben in docs/technik.md, Test tests/sicherheit.js -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: data:; font-src 'self'; connect-src 'self' blob: data:; worker-src 'self'; manifest-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#fdf6ec">
+  <title>Formennest – Formen, Muster, Raum</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="laedt">
+
+  <!-- Willkommen: nur beim allerersten Start auf einem neuen Gerät, für die Eltern -->
+  <section id="willkommen" class="screen">
+    <div class="willkommen">
+      <img class="willkommen-bild" src="bilder/nest.svg" alt="">
+      <h2>Willkommen im Formennest!</h2>
+      <p><b>Formen erkennen, Muster fortsetzen, oben und unten verstehen</b> – für Kinder ab 3. Kostenlos, ohne Werbung,
+        funktioniert auch ohne Internet.</p>
+      <p>Spielen mehrere Kinder? Dann legen Sie für jedes Kind einen Eintrag an – so sieht jedes die Spiele,
+        die zu ihm passen.</p>
+      <button id="btn-willkommen-kind" class="willkommen-btn haupt">👧 Kind anlegen</button>
+      <button id="btn-willkommen-los" class="willkommen-btn">▶️ Gleich spielen</button>
+      <p class="hinweis">Jede Runde endet mit einer kleinen Aufgabe in echt (etwas Rundes suchen, ein Muster legen). Ist Ihr Kind fertig,
+        <b>halten Sie als Erwachsener 👍 kurz gedrückt</b>.</p>
+      <p class="hinweis">Später geht alles im Elternbereich: <b>⚙️ oben rechts 2 Sekunden gedrückt halten</b>.
+        Dort auch: Kinder, Pause, welche Spiele zu sehen sind.</p>
+      <button id="btn-willkommen-info" class="text-btn">ℹ️ Über die App &amp; Datenschutz</button>
+    </div>
+  </section>
+
+  <!-- Über die App & Datenschutz (für Eltern) -->
+  <section id="info" class="screen eltern">
+    <header class="topbar">
+      <button id="btn-info-zurueck" class="icon-btn" aria-label="Zurück">⬅️</button>
+      <h2>Über die App</h2>
+      <span></span>
+    </header>
+    <div class="eltern-inhalt info">
+      <div class="karte">
+        <h3>Formennest <small>· eine App vom Lauschling</small></h3>
+        <p>Eine kostenlose Lern-App für Kinder ab 3 Jahren, ohne Werbung und ohne Tracking – als privates Projekt eines
+          Vaters für seine Kinder entstanden. Sie ist an Montessori angelehnt: Formen erst mit der Hand erfahren (einsetzen,
+          umfahren), dann benennen; Muster erst nachlegen, dann fortsetzen; Lagewörter wie „auf“, „in“ und „unter“ erst
+          sehen, dann selbst zeigen.</p>
+        <p>Es gibt kein „falsch“, keine Punkte und keine Zeitgrenze. Jede Runde endet mit einer kleinen Aufgabe in der
+          echten Welt („Such etwas Rundes!“) – Formen und Muster findet man überall zu Hause.
+          Ist Ihr Kind damit fertig, halten Sie als Erwachsener 👍 (unten rechts) kurz gedrückt.
+          Ein kurzer Tipp reicht absichtlich nicht, damit Kinder den Daumen nicht selbst drücken.</p>
+        <p>Welche Spiele Ihr Kind sieht, stellen Sie im Elternbereich ein – am besten ein neues Spiel erst zeigen, wenn
+          Sie es zusammen ausprobiert haben. Kurze Einheiten (wenige Minuten) sind für dieses Alter genug.</p>
+        <p>Geschwister-Apps: <a href="https://doganbedran.github.io/buchstaben/" target="_blank" rel="noopener">Wortnest</a>
+          (Buchstaben und Laute) und <a href="https://doganbedran.github.io/zahlennest/" target="_blank" rel="noopener">Zahlennest</a>
+          (Mengen und Zahlen). Eine eingestellte Pause gilt für alle drei Apps zusammen.</p>
+      </div>
+      <div class="karte">
+        <h3>Datenschutz</h3>
+        <p><b>Alles bleibt auf diesem Gerät.</b> Namen der Kinder, Fotos, eigene Sprachaufnahmen und Einstellungen speichert die App nur im
+          Speicher dieses Browsers bzw. der installierten App. Es gibt kein Konto, keinen eigenen Server, keine Werbung,
+          keine Analyse- oder Tracking-Dienste, und nichts wird an Dritte gesendet.</p>
+        <p><b>Kamera und Mikrofon</b> werden nur benutzt, wenn Sie ausdrücklich ein Foto wählen oder etwas aufnehmen.</p>
+        <p><b>Abruf der App:</b> Die App wird über <a href="https://pages.github.com/" target="_blank" rel="noopener">GitHub Pages</a>
+          (GitHub, Inc., USA) bereitgestellt. Beim Laden und bei Updates verarbeitet GitHub technisch notwendig Verbindungsdaten
+          wie die IP-Adresse, z. B. zur Sicherheit des Dienstes. Darauf hat die App keinen Einfluss; Einzelheiten stehen in der
+          <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Datenschutzerklärung von GitHub</a>.
+          Danach läuft die App auch ohne Internet.</p>
+        <p><b>Wortnest, Zahlennest und Formennest</b> liegen unter derselben Adresse, speichern ihre Daten aber getrennt. Gemeinsam
+          ist nur die Pause (Spielzeit von heute und die Einstellung „Pause nach … Minuten“).</p>
+        <p><b>Löschen:</b> Kinder lassen sich im Elternbereich einzeln löschen. Alles auf einmal löschen Sie, indem Sie die
+          App deinstallieren bzw. die Website-Daten dieser Seite im Browser löschen – Achtung: Das löscht auch die Daten
+          von Wortnest und Zahlennest auf diesem Gerät.</p>
+      </div>
+      <div class="karte">
+        <h3>Lizenz &amp; Kontakt</h3>
+        <p>Der Programmcode ist freie Software unter der
+          <a href="https://www.gnu.org/licenses/agpl-3.0.de.html" target="_blank" rel="noopener">GNU AGPL 3.0</a>.
+          Aufnahmen des Sprechers stehen unter
+          <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de" target="_blank" rel="noopener">CC BY-NC-ND 4.0</a>
+          (nicht kommerziell, nicht verändert); vorläufige Aufnahmen stammen von der Sprachsynthese Piper („Thorsten“, frei).
+          Bilder sind Emoji Ihres Geräts bzw. eigene Zeichnungen. Schrift: Andika von SIL International unter der
+          <a href="https://github.com/doganbedran/formennest/blob/main/fonts/OFL.txt" target="_blank" rel="noopener">SIL Open Font License 1.1</a>.</p>
+        <p>Fragen, Ideen oder Fehler? Gern auf der Projektseite:
+          <a href="https://github.com/doganbedran/formennest" target="_blank" rel="noopener">github.com/doganbedran/formennest</a></p>
+        <p class="hinweis"><span id="info-version"></span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Wer spielt? (nur wenn Kinder angelegt sind) -->
+  <section id="wer" class="screen">
+    <header class="topbar wer-kopf">
+      <img class="wer-nest" src="bilder/nest.svg" alt="">
+    </header>
+    <div id="wer-liste" class="wer-liste"></div>
+  </section>
+
+  <!-- Startseite: nur große Spiel-Kacheln (ein Bildschirm, eine Aufgabe) -->
+  <section id="home" class="screen active">
+    <header class="topbar">
+      <button id="btn-kind" class="kind-btn" aria-label="Anderes Kind" hidden></button>
+      <span></span>
+      <button id="btn-eltern" class="icon-btn small" aria-label="Elternbereich (lange drücken)">
+        <span>⚙️</span><svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16"/></svg>
+      </button>
+    </header>
+    <!-- Spiele: große Symbole, die Kinder ohne Lesen verstehen; sichtbar nur, was fertig und im Regal ist -->
+    <nav class="spiele-raster" aria-label="Spiele">
+    </nav>
+    <!-- Noch kein Spiel im Regal: ruhiges Nest statt leerer Seite -->
+    <div id="home-leer" class="home-leer" hidden><img src="bilder/nest.svg" alt=""></div>
+  </section>
+
+  <section id="pause" class="screen">
+    <div class="spiel-pause">
+      <div class="pause-bild" aria-hidden="true">😴</div>
+      <button id="btn-pause-home" class="ende-home" aria-label="Fertig">🏠</button>
+    </div>
+  </section>
+
+  <section id="eltern" class="screen eltern">
+    <header class="topbar">
+      <button id="btn-eltern-zurueck" class="icon-btn" aria-label="Zurück">🏠</button>
+      <h2>Elternbereich</h2>
+      <span></span>
+    </header>
+    <div class="eltern-inhalt">
+      <div class="karte">
+        <h3>Kinder</h3>
+        <p class="hinweis">Jedes Kind hat eigene Einstellungen. Sobald ein Kind angelegt ist, fragt die App beim Start
+          „Wer spielt?“. Die App zählt nichts über Ihr Kind – es gibt keine Punkte und keine Ranglisten.</p>
+        <div id="kinder-liste" class="kinder-liste"></div>
+        <button id="btn-kind-neu" class="text-btn">➕ Kind hinzufügen</button>
+      </div>
+
+      <div class="karte">
+        <h3>Stimmen 🎙️</h3>
+        <p class="hinweis">Statt der Computerstimme können Sie (oder Oma, Opa …) die Sätze der Spiele selbst einsprechen.
+          Die Aufnahmen bleiben nur auf diesem Gerät. Was noch nicht eingesprochen ist, spricht weiter die Computerstimme.</p>
+        <div id="menschen-liste" class="kinder-liste"></div>
+        <button id="btn-mensch-neu" class="text-btn">➕ Mensch hinzufügen</button>
+        <div id="stimme-app" hidden>
+          <p class="hinweis">Wer spricht in der App?</p>
+          <div id="stimme-app-wahl" class="stimme-wahl"></div>
+        </div>
+      </div>
+
+      <div class="karte" id="karte-regal">
+        <h3>Spiele im Regal</h3>
+        <p class="hinweis">Welche Spiele auf der Startseite stehen. Lieber wenige: mit 3 Jahren meist 2–3 Spiele,
+          mit 4 meist 3–4. Ein neues Spiel erst ins Regal stellen, wenn Sie es einmal zusammen ausprobiert haben – und
+          dafür lieber ein anderes herausnehmen (tauschen statt anhäufen). Ein Spiel pro Mal reicht.</p>
+        <div id="spiele-wahl" class="regal-wahl"></div>
+      </div>
+
+      <div class="karte">
+        <h3>Der Daumen 👍</h3>
+        <p class="hinweis">Am Ende jeder Runde macht Ihr Kind etwas in echt. Ist es fertig, halten Sie 👍 unten rechts
+          etwa eine Sekunde gedrückt (ein Ring füllt sich) – dann geht es weiter. Kurz antippen genügt absichtlich nicht.</p>
+      </div>
+
+      <div class="karte">
+        <h3>Pause 😴</h3>
+        <p class="hinweis">Nach der gewählten Spielzeit kommt beim nächsten Spielende ein ruhiges Pausen-Bild – nie mitten
+          im Spiel. Wer danach (etwa eine halbe Stunde lang) ein Spiel öffnet, sieht wieder das Pausen-Bild.
+          <b>Gilt für Wortnest, Zahlennest und Formennest zusammen</b> auf diesem Gerät.</p>
+        <p class="hinweis">Zur Einordnung: Für 3- bis 6-Jährige empfehlen Fachgesellschaften höchstens etwa 30 Minuten
+          Bildschirm an einzelnen Tagen, am besten gemeinsam mit einem Erwachsenen – für alle Apps zusammen.</p>
+        <div id="pause-wahl" class="regal-wahl"></div>
+        <p class="hinweis" id="spielzeit-heute"></p>
+        <button id="btn-pause-aus" class="text-btn" hidden>▶️ Pause jetzt beenden</button>
+      </div>
+
+      <div class="karte">
+        <h3>App</h3>
+        <p class="hinweis"><span id="app-version"></span> · Updates kommen automatisch, sobald das Gerät online ist.</p>
+        <button id="btn-update" class="text-btn">🔄 Nach Update suchen</button>
+      </div>
+
+      <div class="karte">
+        <h3>Über die App &amp; Datenschutz</h3>
+        <p class="hinweis">Wie die App funktioniert, was gespeichert wird (nur auf diesem Gerät) und unter welcher Lizenz sie steht.</p>
+        <button id="btn-info" class="text-btn">ℹ️ Über die App &amp; Datenschutz</button>
+      </div>
+      <input type="file" id="foto-input" accept="image/*" hidden>
+    </div>
+  </section>
+
+  <section id="kind" class="screen eltern">
+    <header class="topbar">
+      <button id="btn-kind-zurueck" class="icon-btn" aria-label="Zurück">⬅️</button>
+      <h2 id="kind-titel">Kind</h2>
+      <span></span>
+    </header>
+    <div class="eltern-inhalt">
+      <div class="karte">
+        <h3>Name</h3>
+        <input id="kind-name" class="textfeld" type="text" maxlength="20" autocomplete="off">
+      </div>
+      <div class="karte">
+        <h3>Erkennungsbild</h3>
+        <p class="hinweis">Daran erkennt das Kind sich bei „Wer spielt?“.</p>
+        <div id="kind-tiere" class="tier-auswahl"></div>
+        <div class="knopf-reihe">
+          <button id="btn-kind-foto" class="text-btn">📷 Foto vom Kind</button>
+          <button id="btn-kind-foto-weg" class="text-btn">↩️ Kein Foto</button>
+        </div>
+      </div>
+      <div class="karte">
+        <h3>Spiele im Regal</h3>
+        <p class="hinweis">Welche Spiele dieses Kind auf der Startseite sieht. Lieber wenige: mit 3 Jahren
+          meist 2–3 Spiele, mit 4 meist 3–4. Ein neues Spiel erst ins Regal stellen, wenn Sie es einmal zusammen
+          ausprobiert haben – und dafür lieber ein anderes herausnehmen. Geschwister
+          sehen ihr Regal jeweils für sich (nicht „das ist für Große“ sagen – zuschauen und mitzählen geht immer).</p>
+        <div id="kind-spiele" class="regal-wahl"></div>
+      </div>
+      <div class="karte" id="karte-kind-stimme" hidden>
+        <h3>Stimme</h3>
+        <p class="hinweis">Wer in den Spielen spricht. Am besten bleibt es bei einer Stimme pro Kind.</p>
+        <div id="kind-stimme" class="stimme-wahl"></div>
+      </div>
+      <div class="karte">
+        <div class="knopf-reihe">
+          <button id="btn-kind-loeschen" class="text-btn warnung">🗑️ Kind löschen</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="mensch" class="screen eltern">
+    <header class="topbar">
+      <button id="btn-mensch-zurueck" class="icon-btn" aria-label="Zurück">⬅️</button>
+      <h2 id="mensch-titel">Stimme</h2>
+      <span></span>
+    </header>
+    <div class="eltern-inhalt">
+      <div class="karte">
+        <h3>Name</h3>
+        <input id="mensch-name" class="textfeld" type="text" maxlength="30" autocomplete="off">
+      </div>
+      <div class="karte">
+        <h3>Foto</h3>
+        <p class="hinweis">Nur für Sie zum Erkennen in den Listen.</p>
+        <div class="mensch-foto-reihe">
+          <span id="mensch-foto" class="mensch-bild gross"></span>
+          <div class="knopf-reihe">
+            <button id="btn-mensch-foto" class="text-btn">📷 Foto</button>
+            <button id="btn-mensch-foto-weg" class="text-btn">↩️ Kein Foto</button>
+          </div>
+        </div>
+      </div>
+      <div class="karte">
+        <h3>Sätze einsprechen</h3>
+        <p class="hinweis" id="mensch-stand"></p>
+        <p class="hinweis" id="mensch-fuer"></p>
+        <button id="btn-mensch-studio" class="text-btn">🎙️ Sätze einsprechen</button>
+      </div>
+      <div class="karte">
+        <div class="knopf-reihe">
+          <button id="btn-mensch-loeschen" class="text-btn warnung">🗑️ Löschen (mit allen Aufnahmen)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="studio" class="screen eltern">
+    <header class="topbar">
+      <button id="btn-studio-zurueck" class="icon-btn" aria-label="Zurück">⬅️</button>
+      <h2 id="studio-titel">Stimme einsprechen</h2>
+      <span></span>
+    </header>
+    <div class="eltern-inhalt studio">
+      <div class="karte" id="studio-hinweis" hidden>
+        <h3>Bevor es losgeht</h3>
+        <p class="hinweis">Ihre Aufnahmen bleiben nur auf diesem Gerät – nichts wird gesendet. Bitte in ruhiger Umgebung
+          aufnehmen, ohne Kinderstimmen oder Namen im Hintergrund. Wer die App oder die Browserdaten löscht, verliert
+          die Aufnahmen. Zählen immer in einem Zug einsprechen, langsam – die letzte Zahl betonen.</p>
+        <button id="btn-studio-ok" class="text-btn">Verstanden</button>
+      </div>
+      <div class="studio-reiter" id="studio-reiter"></div>
+      <div class="studio-balken"><span id="studio-balken"></span></div>
+      <div class="karte studio-karte">
+        <div class="studio-text" id="studio-text"></div>
+        <p class="hinweis" id="studio-tipp"></p>
+        <div class="knopf-reihe">
+          <button id="btn-studio-standard" class="text-btn">▶ Computerstimme</button>
+          <button id="btn-studio-meins" class="text-btn">▶ Meins</button>
+        </div>
+        <button id="btn-studio-mikro" class="studio-mikro" aria-label="Gedrückt halten zum Aufnehmen">🎙️</button>
+        <div class="studio-pegel" aria-hidden="true"><span id="studio-pegel"></span></div>
+        <p class="hinweis studio-meldung" id="studio-meldung">Gedrückt halten und sprechen, dann loslassen.</p>
+        <button id="btn-studio-gut" class="text-btn studio-gut" disabled>✓ Gut, weiter</button>
+        <div class="knopf-reihe studio-nav">
+          <button id="btn-studio-vor" class="text-btn">← vorheriger</button>
+          <button id="btn-studio-weiter" class="text-btn">überspringen →</button>
+        </div>
+        <button id="btn-studio-zuruecksetzen" class="text-btn warnung">↩️ Wieder Computerstimme</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="ansagen.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

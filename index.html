@@ -110,9 +110,21 @@
     </header>
     <!-- Spiele: große Symbole, die Kinder ohne Lesen verstehen; sichtbar nur, was fertig und im Regal ist -->
     <nav class="spiele-raster" aria-label="Spiele">
+      <button class="spiel-btn" data-spiel="passt" aria-label="Passt rein" hidden></button>
     </nav>
     <!-- Noch kein Spiel im Regal: ruhiges Nest statt leerer Seite -->
     <div id="home-leer" class="home-leer" hidden><img src="bilder/nest.svg" alt=""></div>
+  </section>
+
+  <!-- Passt rein: Formen in ihre Mulde schieben (Geometrische Kommode) -->
+  <section id="passt" class="screen">
+    <header class="topbar">
+      <button id="btn-passt-home" class="icon-btn" aria-label="Zurück">🏠</button>
+      <div id="passt-runden" class="runden-eier"></div>
+      <button id="btn-passt-laut" class="icon-btn" aria-label="Nochmal hören">🔊</button>
+    </header>
+    <div id="passt-feld" class="passt-feld"></div>
+    <div class="daumen-platz"><button id="btn-passt-daumen" class="daumen-btn" aria-label="Gemacht" hidden>👍</button></div>
   </section>
 
   <section id="pause" class="screen">

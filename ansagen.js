@@ -12,4 +12,12 @@ const ANSAGEN = {
   'jetzt-in-echt': ['Jetzt in echt!', 'Alle Spiele'],
   'echt-umlenken': ['Mach es in echt, mit deinen Händen!', 'Alle Spiele'],
   'zeig-mal': ['Zeig mal!', 'Alle Spiele'],
+  // Passt rein
+  'passt-start': ['Jede Form hat ihren Platz. Schieb sie hinein!', 'Passt rein'],
+  'passt-hilfe': ['Schau genau: Wo passt sie hinein?', 'Passt rein'],
+  'passt-fertig': ['Alles passt!', 'Passt rein'],
+  'passt-welt-vor': ['Schau: Rundherum, ganz rund!', 'Passt rein'],
+  'passt-welt': ['Such etwas Rundes bei dir zu Hause!', 'Passt rein'],
+  'passt-welt-zeig': ['Fahr mit dem Finger rundherum!', 'Passt rein'],
+  'passt-welt-fertig': ['Rundherum – das ist rund!', 'Passt rein'],
 };

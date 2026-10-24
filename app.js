@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 1;
+const APP_VERSION = 2;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -152,11 +152,13 @@ function kindBildHtml(k) {
 
 // Reihenfolge = Reihenfolge im Konzept (so werden sie nach und nach gebaut und freigeschaltet).
 // Montessori: ein Material kommt erst ins Regal, wenn es gezeigt wurde. Gespeichert wird, was AUSGEBLENDET ist.
-const ALLE_SPIELE = [];
-const START_REGAL = [];
+const ALLE_SPIELE = ['passt'];
+const START_REGAL = ['passt'];
 const START_AUS = ALLE_SPIELE.filter((id) => !START_REGAL.includes(id));
 // Für Eltern: was jedes Spiel tut (die Kacheln zeigen den Kindern nur ein Bild)
-const SPIEL_INFO = {};
+const SPIEL_INFO = {
+  passt: 'Formen in die passende Mulde schieben – Kreis, Quadrat, Dreieck (ab 3)',
+};
 // Fertige Spiele: id -> Startfunktion. Was hier fehlt, erscheint weder auf der Startseite noch im Regal.
 const SPIELE = {};
 // Jedes Spiel trägt hier seine Stopp-Funktion ein (Zurück-Taste hält alle an)
@@ -658,6 +660,291 @@ function animieren(el, klasse) {
   void el.offsetWidth;
   el.classList.add(klasse);
 }
+
+// ---------- Passt rein (ab 3): Formen einsetzen – wie die erste Lade der Geometrischen Kommode ----------
+// Oben ein Brett mit drei Mulden (Kreis, Quadrat, Dreieck), unten die Einsätze: gleiche Farbe, etwa gleiche Fläche
+// (sonst sortiert das Kind nach Farbe oder Größe statt nach Form). Ein Einsatz rastet nur in seiner Mulde ein
+// („klack“); in einer falschen wackelt er und bleibt daneben liegen – das Material kontrolliert selbst, kein „falsch“.
+// Nach 2 Versuchen leuchtet die richtige Mulde, nach 3 gleitet der Einsatz von selbst hinein. Drei Runden: die Mulden
+// liegen jedes Mal anders, in Runde 3 leicht gedreht (Quadrat nur wenig – auf der Spitze wäre es eine „Raute“).
+// Zum Schluss in echt: „Such etwas Rundes bei dir zu Hause!“ – „Fahr mit dem Finger rundherum!“
+const PASST_RUNDEN = 3;
+const PASST_ZEIT = { hilfe: 12000, rundenPause: 900, vormachen: 2600, daumen: 6000, auftragNochmal: 16000 };
+const PASST_FORMEN = ['kreis', 'quadrat', 'dreieck'];
+// Drehung der Mulden in Runde 3 (Grad)
+const PASST_DREHUNG = { kreis: 0, quadrat: 12, dreieck: 28 };
+const pa = { runde: 0, mulden: [], teile: [], ziehen: null, gesperrt: true, timer: null, nummer: 0, fertig: false,
+  inEcht: false, auftrag: false, mass: null, versuche: {} };
+const paBausteine = spielBausteine('passt', pa);
+const { aktuell: paAktuell, ansage: paAnsage } = paBausteine;
+SPIEL_STOPPEN.push(() => passtStoppen());
+
+function passtStoppen() {
+  paBausteine.stoppen();
+  pa.ziehen = null;
+}
+
+// Form als SVG-Inhalt (Bezug: Mittelpunkt 50/50, etwa gleiche Fläche ~4500)
+function formInhalt(form, art) {
+  const farbe = art === 'mulde' ? 'fill="#6e4a30" stroke="#4a3220" stroke-width="3"' : 'fill="#f3c56b" stroke="#7a5a2a" stroke-width="3"';
+  if (form === 'kreis') return `<circle cx="50" cy="50" r="38" ${farbe}/>`;
+  if (form === 'quadrat') return `<rect x="16.5" y="16.5" width="67" height="67" rx="3" ${farbe}/>`;
+  return `<path d="M50 -8.9 L101 79.4 L-1 79.4 Z" ${farbe} stroke-linejoin="round" transform="translate(0 6)"/>`;
+}
+const formSvg = (form, art, drehung = 0) => `<svg viewBox="-12 -12 124 124" aria-hidden="true"><g transform="rotate(${drehung} 50 50)">${formInhalt(form, art)}</g></svg>`;
+
+function paRundenZeichnen() {
+  $('#passt-runden').innerHTML = `<span class="gruppe">${
+    Array.from({ length: PASST_RUNDEN }, (_, i) => `<span class="${i < pa.runde ? 'voll' : ''}"></span>`).join('')}</span>`;
+}
+
+// Brett oben, Einsätze unten (gleicher Abstand); quer: Brett links, Einsätze rechts
+function paMasse() {
+  const feld = $('#passt-feld');
+  const W = feld.clientWidth, H = feld.clientHeight;
+  const quer = W > H;
+  const S = quer ? Math.min(120, (W / 2 - 40) / 3.5, (H - 40) / 3.6) : Math.min(120, (W - 48) / 3.7, (H - 140) / 4.2);
+  const abstand = S * 1.25;
+  const brett = quer ? { x: 16, y: (H - S * 3.9) / 2, w: S * 1.6, h: S * 3.9 } : { x: 16, y: 16, w: W - 32, h: S * 1.6 };
+  const muldeAn = (i) => (quer ? [brett.x + brett.w / 2, brett.y + brett.h / 2 + (i - 1) * abstand]
+    : [W / 2 + (i - 1) * abstand, brett.y + brett.h / 2]);
+  const teilAn = (i) => (quer ? [W * 0.72, H / 2 + (i - 1) * abstand]
+    : [W / 2 + (i - 1) * abstand, brett.y + brett.h + (H - brett.y - brett.h - 96) / 2]);
+  return { W, H, S, quer, brett, muldeAn, teilAn };
+}
+
+function paSetzen(t, x, y) {
+  const { W, H, S } = pa.mass;
+  t.x = Math.max(S / 2, Math.min(W - S / 2, x));
+  t.y = Math.max(S / 2, Math.min(H - S / 2, y));
+  t.el.style.transform = `translate(${t.x - S / 2}px, ${t.y - S / 2}px)`;
+}
+
+function paAnordnen() {
+  const feld = $('#passt-feld');
+  if (!feld.clientWidth || !pa.mulden.length) return;
+  pa.mass = paMasse();
+  const { S, brett, muldeAn, teilAn } = pa.mass;
+  Object.assign(feld.querySelector('.brett').style, { left: `${brett.x}px`, top: `${brett.y}px`, width: `${brett.w}px`, height: `${brett.h}px` });
+  pa.mulden.forEach((m, i) => {
+    [m.x, m.y] = muldeAn(i);
+    Object.assign(m.el.style, { left: `${m.x - S / 2}px`, top: `${m.y - S / 2}px`, width: `${S}px`, height: `${S}px` });
+  });
+  pa.teile.forEach((t, i) => {
+    Object.assign(t.el.style, { width: `${S}px`, height: `${S}px` });
+    if (t.drin) paSetzen(t, t.drin.x, t.drin.y); else paSetzen(t, ...teilAn(i));
+  });
+}
+
+async function passtNeueRunde() {
+  passtStoppen();
+  const nr = pa.nummer;
+  const feld = $('#passt-feld');
+  feld.closest('.screen').classList.remove('ruhig');
+  feld.innerHTML = '<div class="brett"></div>';
+  const gedreht = pa.runde === PASST_RUNDEN - 1;
+  // Mulden jedes Mal in neuer Reihenfolge, Einsätze in einer anderen (nie genau darunter)
+  const muldenFolge = mischen(PASST_FORMEN);
+  let teilFolge;
+  do teilFolge = mischen(PASST_FORMEN); while (teilFolge.some((f, i) => f === muldenFolge[i]));
+  pa.versuche = {};
+  pa.mulden = muldenFolge.map((form) => {
+    const el = document.createElement('div');
+    el.className = 'mulde';
+    el.dataset.form = form;
+    const drehung = gedreht ? PASST_DREHUNG[form] : 0;
+    el.innerHTML = formSvg(form, 'mulde', drehung);
+    feld.appendChild(el);
+    return { form, el, drehung, belegt: false, x: 0, y: 0 };
+  });
+  pa.teile = teilFolge.map((form) => {
+    const el = document.createElement('div');
+    el.className = 'einsatz';
+    el.style.transition = 'none';
+    el.innerHTML = `<span class="einsatz-bild">${formSvg(form, 'teil')}</span>`;
+    feld.appendChild(el);
+    const t = { form, el, drin: null, x: 0, y: 0 };
+    el.teil = t;
+    return t;
+  });
+  paAnordnen();
+  void feld.offsetWidth;
+  pa.teile.forEach((t) => { t.el.style.transition = ''; });
+  pa.gesperrt = true;
+  if (!(await paAnsage(nr, 'passt-start'))) return;
+  pa.gesperrt = false;
+  paHilfeAbwarten(nr);
+}
+
+// Lange nichts eingesetzt: Auftrag nochmal, ein loser Einsatz hüpft (kein Zeitdruck)
+function paHilfeAbwarten(nr) {
+  clearTimeout(pa.timer);
+  pa.timer = setTimeout(async () => {
+    if (!paAktuell(nr) || pa.gesperrt || pa.ziehen) { paHilfeAbwarten(nr); return; }
+    pa.gesperrt = true;
+    if (!(await paAnsage(nr, 'passt-hilfe'))) return;
+    pa.gesperrt = false;
+    const los = pa.teile.find((t) => !t.drin);
+    if (los) animieren(los.el, 'huepft');
+    paHilfeAbwarten(nr);
+  }, PASST_ZEIT.hilfe);
+}
+
+$('#passt-feld').addEventListener('pointerdown', (e) => {
+  const el = e.target.closest('.einsatz');
+  if (!el || !el.teil || el.teil.drin) return;
+  e.preventDefault();
+  if (pa.ziehen || pa.gesperrt || pa.auftrag) return;
+  audio();
+  pa.ziehen = { t: el.teil, id: e.pointerId, sx: e.clientX, sy: e.clientY, bewegt: false, feld: $('#passt-feld').getBoundingClientRect(), nr: pa.nummer };
+  el.classList.add('greift');
+  try { el.setPointerCapture(e.pointerId); } catch { /* synthetische Ereignisse (Tests) */ }
+});
+
+document.addEventListener('pointermove', (e) => {
+  const z = pa.ziehen;
+  if (!z || e.pointerId !== z.id) return;
+  if (Math.hypot(e.clientX - z.sx, e.clientY - z.sy) > 8) z.bewegt = true;
+  // Der Einsatz sitzt ~30 px über dem Finger, damit das Kind ihn sieht
+  if (z.bewegt) paSetzen(z.t, e.clientX - z.feld.left, e.clientY - z.feld.top - 30);
+});
+
+// Nicht auf dem Brett liegen lassen (dort sähe er aus wie eingesetzt): neben das Brett schieben
+function paVomBrett(t) {
+  const { brett, S, quer } = pa.mass;
+  const aufBrett = t.x > brett.x - S / 2 && t.x < brett.x + brett.w + S / 2 && t.y > brett.y - S / 2 && t.y < brett.y + brett.h + S / 2;
+  if (!aufBrett) return;
+  if (quer) paSetzen(t, brett.x + brett.w + S * 0.7, t.y); else paSetzen(t, t.x, brett.y + brett.h + S * 0.7);
+}
+
+function paLoslassen(e) {
+  const z = pa.ziehen;
+  if (!z || e.pointerId !== z.id) return;
+  pa.ziehen = null;
+  z.t.el.classList.remove('greift');
+  if (z.nr !== pa.nummer || !paAktuell(z.nr)) return;
+  if (!z.bewegt) { animieren(z.t.el, 'huepft'); return; }
+  const { S } = pa.mass;
+  const naechste = pa.mulden.map((m) => ({ m, a: Math.hypot(m.x - z.t.x, m.y - z.t.y) })).sort((a, b) => a.a - b.a)[0];
+  if (naechste.a > S * 0.6) { paVomBrett(z.t); return; }
+  const m = naechste.m;
+  if (m.form === z.t.form && !m.belegt) { paEinsetzen(z.t, m); return; }
+  if (m.belegt) { paVomBrett(z.t); return; }
+  paPasstNicht(z.nr, z.t);
+}
+document.addEventListener('pointerup', paLoslassen);
+document.addEventListener('pointercancel', paLoslassen);
+
+// Passt nicht: sanft wackeln, daneben liegen bleiben; 2. Mal: richtige Mulde leuchtet; 3. Mal: gleitet von selbst hinein
+function paPasstNicht(nr, t) {
+  paVomBrett(t);
+  animieren(t.el, 'wackelt');
+  const n = pa.versuche[t.form] = (pa.versuche[t.form] || 0) + 1;
+  const richtig = pa.mulden.find((m) => m.form === t.form);
+  if (n === 2) richtig.el.classList.add('hinweis');
+  if (n >= 3) setTimeout(() => paAktuell(nr) && !t.drin && paEinsetzen(t, richtig), 450);
+  paHilfeAbwarten(nr);
+}
+
+async function paEinsetzen(t, m) {
+  const nr = pa.nummer;
+  t.drin = m;
+  m.belegt = true;
+  m.el.classList.remove('hinweis');
+  t.el.classList.add('drin');
+  t.el.querySelector('.einsatz-bild').style.transform = `rotate(${m.drehung}deg)`;
+  paSetzen(t, m.x, m.y);
+  paKlack();
+  try { if (navigator.vibrate) navigator.vibrate(30); } catch { /* egal */ }
+  if (pa.teile.some((x) => !x.drin)) { paHilfeAbwarten(nr); return; }
+  pa.gesperrt = true;
+  clearTimeout(pa.timer);
+  await warten(450);
+  if (!paAktuell(nr)) return;
+  glockenspiel();
+  pa.teile.forEach((x) => x.el.classList.add('leuchtet'));
+  if (!(await paAnsage(nr, 'passt-fertig'))) return;
+  pa.runde++;
+  paRundenZeichnen();
+  await warten(PASST_ZEIT.rundenPause);
+  if (!paAktuell(nr)) return;
+  if (pa.runde < PASST_RUNDEN) passtNeueRunde(); else passtAuftrag();
+}
+
+// „Klack“: kurzer, dumpfer Ton beim Einrasten
+function paKlack() {
+  const c = audio();
+  if (!c) return;
+  const osc = c.createOscillator(), gain = c.createGain(), t = c.currentTime;
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(420, t);
+  osc.frequency.exponentialRampToValueAtTime(160, t + 0.09);
+  gain.gain.setValueAtTime(0.3, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+  osc.connect(gain).connect(c.destination);
+  osc.start(t);
+  osc.stop(t + 0.14);
+}
+
+// ----- Echte Welt: vormachen (ein Finger fährt um den Kreis), dann „Such etwas Rundes bei dir zu Hause!“ -----
+
+async function passtAuftrag() {
+  passtStoppen();
+  const nr = pa.nummer;
+  pa.auftrag = true;
+  pa.fertig = false;
+  $('#btn-passt-daumen').hidden = true;
+  const feld = $('#passt-feld');
+  feld.innerHTML = `<div class="passt-vormachen"><span class="rund-bild">${formSvg('kreis', 'teil')}</span><span class="rund-finger" aria-hidden="true">☝️</span></div>`;
+  if (!(await paAnsage(nr, 'passt-welt-vor'))) return;
+  await warten(PASST_ZEIT.vormachen);
+  if (!paAktuell(nr)) return;
+  inEcht({ z: pa, nr, aktuell: paAktuell, ansage: paAnsage, buehne: feld, knopf: $('#btn-passt-daumen'),
+    karteHtml: `${formSvg('kreis', 'teil')}<span class="karte-bild">🔎</span>`, sagen: (nr2) => paAnsage(nr2, 'passt-welt'), zeit: PASST_ZEIT });
+}
+
+async function passtAuftragErledigt(nr) {
+  const karte = inEchtBestaetigt(pa, $('#btn-passt-daumen'));
+  if (!karte) return;
+  if (!(await paAnsage(nr, 'passt-welt-zeig'))) return;
+  await warten(PASST_ZEIT.vormachen);
+  if (!paAktuell(nr)) return;
+  glockenspiel();
+  if (!(await paAnsage(nr, 'passt-welt-fertig'))) return;
+  spielEnde('passt', passtNeu);
+}
+
+$('#btn-passt-daumen').addEventListener('click', () => { audio(); if (pa.inEcht) passtAuftragErledigt(pa.nummer); });
+
+function passtNeu() {
+  passtStoppen();
+  Object.assign(pa, { runde: 0, fertig: false, inEcht: false, auftrag: false });
+  $('#btn-passt-daumen').hidden = true;
+  paRundenZeichnen();
+  passtNeueRunde();
+}
+
+function passtStarten() {
+  spielEndeWeg('passt');
+  zeigen('passt');
+  passtNeu();
+}
+SPIELE.passt = passtStarten;
+$('#home .spiel-btn[data-spiel="passt"]').innerHTML = '<svg class="kachel-bild" viewBox="0 0 100 100" aria-hidden="true">'
+  + '<rect x="4" y="30" width="92" height="40" rx="8" fill="#e9d2b0" stroke="#b98a5a" stroke-width="3"/>'
+  + '<circle cx="24" cy="50" r="12" fill="#6e4a30"/><rect x="40" y="38" width="22" height="22" rx="2" fill="#f3c56b" stroke="#7a5a2a" stroke-width="2"/>'
+  + '<path d="M80 36 L92 60 L68 60 Z" fill="#6e4a30"/></svg>';
+
+$('#btn-passt-home').addEventListener('click', () => { passtStoppen(); wiedergabeStoppen(); zurStartseite(); });
+$('#btn-passt-laut').addEventListener('click', () => {
+  const ende = $('#passt .spiel-ende');
+  if ((ende && !ende.hidden) || pa.fertig || pa.gesperrt || pa.ziehen) return;
+  audio();
+  if (pa.inEcht) { inEchtNochmal(pa); return; }
+  pa.gesperrt = true;
+  paAnsage(pa.nummer, 'passt-start').then((ok) => { if (ok) { pa.gesperrt = false; paHilfeAbwarten(pa.nummer); } });
+});
+window.addEventListener('resize', () => { if ($('#passt').classList.contains('active') && !pa.auftrag) paAnordnen(); });
 
 // ---------- Elternbereich (2 Sekunden gedrückt halten) ----------
 

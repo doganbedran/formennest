@@ -13,9 +13,14 @@ hinzufügen“. Elternbereich: ⚙️ oben rechts 2 Sekunden halten. Fragen und 
 Spiele kommen eins nach dem anderen. Konzept: [`docs/konzept.md`](docs/konzept.md).
 
 ## Spiele
-Noch keine – geplant sind „Passt rein“ (Formen einsetzen), „Wo ist die Maus?“ (auf/in/unter), „Zeig mir den Kreis“
-(Formen benennen), „Klatsch – Stampf“ (Klatschmuster) und „Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in
-der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
+- 🔷 **Passt rein** (ab 3) – wie die Geometrische Kommode: Kreis, Quadrat und Dreieck (gleiche Farbe, etwa gleiche
+  Fläche) in die passende Mulde schieben. Nur die richtige nimmt an („klack“); in einer falschen wackelt der Einsatz und
+  bleibt daneben liegen. Nach 2 Versuchen leuchtet die richtige Mulde, nach 3 gleitet er von selbst hinein. Drei
+  Runden, die Mulden liegen jedes Mal anders, in Runde 3 leicht gedreht. Zum Schluss: „Such etwas Rundes bei dir zu
+  Hause!“ – „Fahr mit dem Finger rundherum!“
+
+Geplant: „Wo ist die Maus?“ (auf/in/unter), „Zeig mir den Kreis“ (Formen benennen), „Klatsch – Stampf“ (Klatschmuster),
+„Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
 
 ## Daten neben Wortnest und Zahlennest
 Alle drei Apps liegen unter `doganbedran.github.io` und teilen sich damit den Browser-Speicher. Formennest nutzt darum

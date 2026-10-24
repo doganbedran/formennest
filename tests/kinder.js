@@ -58,7 +58,7 @@
   pruefe(emil.tier !== kinder[0].tier, 'Emil hat dasselbe Tier');
   pruefe(JSON.stringify(regalVon(emil.spieleAus)) === JSON.stringify(START_REGAL), 'Emil nicht mit Start-Regal');
   // Regal je Kind: bei Emil „probe2“ dazu
-  [...document.querySelectorAll('#kind-spiele .regal-spiel')].find((b) => !b.classList.contains('gewaehlt')).click();
+  [...document.querySelectorAll('#kind-spiele .regal-spiel')].find((b) => b.textContent.includes('probe2')).click();
   await bis(() => regalVon(kinder.find((k) => k.name === 'Emil').spieleAus).includes('probe2'));
   pruefe(regalVon(kinder.find((k) => k.name === 'Emil').spieleAus).includes('probe2'), 'Regal je Kind nicht gespeichert');
   history.back();

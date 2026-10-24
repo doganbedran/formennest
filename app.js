@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -152,7 +152,7 @@ function kindBildHtml(k) {
 
 // Reihenfolge = Reihenfolge im Konzept (so werden sie nach und nach gebaut und freigeschaltet).
 // Montessori: ein Material kommt erst ins Regal, wenn es gezeigt wurde. Gespeichert wird, was AUSGEBLENDET ist.
-const ALLE_SPIELE = ['passt', 'maus', 'formen', 'klatsch'];
+const ALLE_SPIELE = ['passt', 'maus', 'formen', 'klatsch', 'muster'];
 const START_REGAL = ['passt'];
 const START_AUS = ALLE_SPIELE.filter((id) => !START_REGAL.includes(id));
 // Für Eltern: was jedes Spiel tut (die Kacheln zeigen den Kindern nur ein Bild)
@@ -161,6 +161,7 @@ const SPIEL_INFO = {
   maus: 'Lagewörter auf, in, unter: die Maus an die Kiste setzen (ab 3)',
   formen: 'Kreis, Quadrat und Dreieck benennen und wiedererkennen, auch gedreht (ab 3½)',
   klatsch: 'Ein Muster aus Klatschen und Stampfen fortsetzen – kein Takt, nur die Reihenfolge (ab 3½)',
+  muster: 'Muster aus Formen nachlegen und weiterlegen: AB, AAB, ABB, ABC (ab 4; mit 3 die erste Runde)',
 };
 // Fertige Spiele: id -> Startfunktion. Was hier fehlt, erscheint weder auf der Startseite noch im Regal.
 const SPIELE = {};
@@ -1784,6 +1785,286 @@ $('#btn-klatsch-laut').addEventListener('click', () => {
   kl.nummer++;
   klFragen(kl.nummer);
 });
+
+// ---------- Muster legen (ab 4; mit 3 nur Runde 1): ein gelegtes Muster nachlegen und fortsetzen ----------
+// Teile unterscheiden sich in Form UND Helligkeit (dunkler Kreis, helles Dreieck, mittleres Quadrat), alle gleich groß,
+// gleicher Abstand. Runde 1: nachlegen (die Vorlage ● ▲ ● ▲ oben, darunter legen); ab Runde 2 weiterlegen
+// (● ▲ ● ▲ ● ⬜ – „Rund, spitz, rund, spitz, rund. Und dann?“), dann AAB, ABB, ABC. Ein unpassendes Teil gleitet in den
+// Vorrat zurück (ein falsches Teil in der Kette zerstörte das Muster) und die Reihe kommt nochmal; 2. Mal: das
+// passende Teil leuchtet; 3. Mal: die App legt es. Zum Schluss in echt: „Leg ein Muster: Löffel, Becher, …“
+const MUSTER_RUNDEN = [
+  { art: 'nach', reihe: ['kreis', 'dreieck', 'kreis', 'dreieck'] },
+  { art: 'weiter', reihe: ['dreieck', 'kreis', 'dreieck', 'kreis', 'dreieck'], fehlt: 'kreis' },
+  { art: 'weiter', reihe: ['kreis', 'kreis', 'dreieck', 'kreis', 'kreis'], fehlt: 'dreieck' },
+  { art: 'weiter', reihe: ['kreis', 'dreieck', 'dreieck', 'kreis', 'dreieck'], fehlt: 'dreieck' },
+  { art: 'weiter', reihe: ['kreis', 'dreieck', 'quadrat', 'kreis', 'dreieck'], fehlt: 'quadrat' },
+];
+const MUSTER_WORT = { kreis: 'rund', dreieck: 'spitz', quadrat: 'eckig' };
+const MUSTER_ZEIT = { hilfe: 12000, pause: 700, daumen: 6000, auftragNochmal: 16000 };
+const mu = { runde: 0, ziele: [], teile: [], vorlage: [], ziehen: null, gesperrt: true, timer: null, nummer: 0,
+  versuche: 0, fertig: false, inEcht: false, auftrag: false, mass: null };
+const muBausteine = spielBausteine('muster', mu);
+const { aktuell: muAktuell, ansage: muAnsage, zaehlen: muZaehlen } = muBausteine;
+SPIEL_STOPPEN.push(() => musterStoppen());
+const muRunde = () => MUSTER_RUNDEN[mu.runde];
+
+function musterStoppen() {
+  muBausteine.stoppen();
+  mu.ziehen = null;
+}
+
+// Muster-Teile: Form und Helligkeit verschieden (dunkel / hell / mittel), gleich große Fläche
+function musterSvg(form) {
+  if (form === 'kreis') return '<svg viewBox="-12 -12 124 124" aria-hidden="true"><circle cx="50" cy="50" r="38" fill="#4a3f35"/></svg>';
+  if (form === 'quadrat') return '<svg viewBox="-12 -12 124 124" aria-hidden="true"><rect x="16.5" y="16.5" width="67" height="67" rx="3" fill="#b98a5a" stroke="#4a3f35" stroke-width="3"/></svg>';
+  return '<svg viewBox="-12 -12 124 124" aria-hidden="true"><path d="M50 -2.9 L101 85.4 L-1 85.4 Z" fill="#fff3c4" stroke="#4a3f35" stroke-width="4" stroke-linejoin="round"/></svg>';
+}
+
+function muRundenZeichnen() {
+  $('#muster-runden').innerHTML = `<span class="gruppe">${
+    MUSTER_RUNDEN.map((_, i) => `<span class="${i < mu.runde ? 'voll' : ''}"></span>`).join('')}</span>`;
+}
+
+function muMasse() {
+  const feld = $('#muster-feld');
+  const W = feld.clientWidth, H = feld.clientHeight;
+  const quer = W > H;
+  const S = Math.min(80, (W - 24) / 6.4, H / (quer ? 4.6 : 7));
+  const abstand = S * 1.12;
+  const reiheX = (i, n) => W / 2 - ((n - 1) * abstand) / 2 + i * abstand;
+  const oben = quer ? H * 0.2 : H * 0.18;
+  const unten = quer ? H * 0.47 : H * 0.36;
+  const vorrat = quer ? H * 0.8 : H * 0.62;
+  return { W, H, S, abstand, reiheX, oben, unten, vorrat };
+}
+
+function muSetzen(t, x, y) {
+  const { W, H, S } = mu.mass;
+  t.x = Math.max(S / 2, Math.min(W - S / 2, x));
+  t.y = Math.max(S / 2, Math.min(H - S / 2, y));
+  t.el.style.transform = `translate(${t.x - S / 2}px, ${t.y - S / 2}px)`;
+}
+
+function muAnordnen() {
+  const feld = $('#muster-feld');
+  if (!feld.clientWidth || !mu.ziele.length) return;
+  mu.mass = muMasse();
+  const { S, reiheX, oben, unten, vorrat } = mu.mass;
+  const nach = muRunde().art === 'nach';
+  const reiheN = mu.vorlage.length + (nach ? 0 : 1);
+  mu.vorlage.forEach((v, i) => Object.assign(v.el.style, { left: `${reiheX(i, reiheN) - S / 2}px`, top: `${oben - S / 2}px`, width: `${S}px`, height: `${S}px` }));
+  mu.ziele.forEach((z) => {
+    z.x = reiheX(z.i, reiheN);
+    z.y = nach ? unten : oben;
+    Object.assign(z.el.style, { left: `${z.x - S / 2}px`, top: `${z.y - S / 2}px`, width: `${S}px`, height: `${S}px` });
+  });
+  mu.teile.forEach((t, i) => {
+    Object.assign(t.el.style, { width: `${S}px`, height: `${S}px` });
+    t.heim = [reiheX(i, mu.teile.length), vorrat];
+    if (t.drin) muSetzen(t, t.drin.x, t.drin.y); else muSetzen(t, ...t.heim);
+  });
+}
+
+async function musterNeueRunde() {
+  musterStoppen();
+  const nr = mu.nummer;
+  const feld = $('#muster-feld');
+  feld.closest('.screen').classList.remove('ruhig');
+  feld.innerHTML = '';
+  const r = muRunde();
+  mu.versuche = 0;
+  mu.vorlage = r.reihe.map((form) => {
+    const el = document.createElement('div');
+    el.className = 'muster-teil fest';
+    el.dataset.form = form;
+    el.innerHTML = musterSvg(form);
+    feld.appendChild(el);
+    return { form, el };
+  });
+  // Ziele: nachlegen = ein leerer Platz unter jedem Teil; weiterlegen = die Lücke am Ende
+  const ziele = r.art === 'nach' ? r.reihe.map((form, i) => ({ form, i })) : [{ form: r.fehlt, i: r.reihe.length }];
+  mu.ziele = ziele.map((z) => {
+    const el = document.createElement('div');
+    el.className = 'muster-platz';
+    feld.appendChild(el);
+    return { ...z, el, belegt: false, x: 0, y: 0 };
+  });
+  // Vorrat: genau die Teile, die nötig sind (nachlegen) bzw. eins von jeder Form der Reihe (weiterlegen)
+  const vorrat = r.art === 'nach' ? mischen(r.reihe) : mischen([...new Set(r.reihe)]);
+  mu.teile = vorrat.map((form) => {
+    const el = document.createElement('div');
+    el.className = 'muster-teil los';
+    el.style.transition = 'none';
+    el.innerHTML = `<span class="figur-bild">${musterSvg(form)}</span>`;
+    feld.appendChild(el);
+    const t = { form, el, drin: null, x: 0, y: 0, heim: [0, 0] };
+    el.teil = t;
+    return t;
+  });
+  muAnordnen();
+  void feld.offsetWidth;
+  mu.teile.forEach((t) => { t.el.style.transition = ''; });
+  await warten(300);
+  if (!muAktuell(nr)) return;
+  muFragen(nr);
+}
+
+// Auftrag: nachlegen – „Leg das Muster genauso darunter!“; weiterlegen – die Reihe in einem Zug, „Und dann?“
+async function muFragen(nr) {
+  if (!muAktuell(nr)) return;
+  mu.gesperrt = true;
+  const r = muRunde();
+  let ok;
+  if (r.art === 'nach') ok = await muAnsage(nr, 'muster-nachlegen');
+  else {
+    ok = await muZaehlen(nr, `muster-reihe-${mu.runde + 1}`, mu.vorlage.map((v) => v.el));
+    mu.vorlage.forEach((v) => v.el.classList.remove('leuchtet'));
+  }
+  if (!ok) return;
+  mu.gesperrt = false;
+  muHilfeAbwarten(nr);
+}
+
+function muHilfeAbwarten(nr) {
+  clearTimeout(mu.timer);
+  mu.timer = setTimeout(() => { if (muAktuell(nr) && !mu.gesperrt && !mu.ziehen) muFragen(nr); else if (muAktuell(nr)) muHilfeAbwarten(nr); }, MUSTER_ZEIT.hilfe);
+}
+
+$('#muster-feld').addEventListener('pointerdown', (e) => {
+  const el = e.target.closest('.muster-teil.los');
+  if (!el || !el.teil || el.teil.drin) return;
+  e.preventDefault();
+  if (mu.ziehen || mu.gesperrt || mu.auftrag) return;
+  audio();
+  mu.ziehen = { t: el.teil, id: e.pointerId, sx: e.clientX, sy: e.clientY, bewegt: false, feld: $('#muster-feld').getBoundingClientRect(), nr: mu.nummer };
+  el.classList.add('greift');
+  try { el.setPointerCapture(e.pointerId); } catch { /* synthetische Ereignisse (Tests) */ }
+});
+
+document.addEventListener('pointermove', (e) => {
+  const z = mu.ziehen;
+  if (!z || e.pointerId !== z.id) return;
+  if (Math.hypot(e.clientX - z.sx, e.clientY - z.sy) > 8) z.bewegt = true;
+  if (z.bewegt) muSetzen(z.t, e.clientX - z.feld.left, e.clientY - z.feld.top - 30);
+});
+
+function muLoslassen(e) {
+  const z = mu.ziehen;
+  if (!z || e.pointerId !== z.id) return;
+  mu.ziehen = null;
+  z.t.el.classList.remove('greift');
+  if (z.nr !== mu.nummer || !muAktuell(z.nr)) return;
+  if (!z.bewegt) { muSetzen(z.t, ...z.t.heim); animieren(z.t.el, 'huepft'); return; }
+  const naechstes = mu.ziele.filter((x) => !x.belegt).map((x) => ({ x, a: Math.hypot(x.x - z.t.x, x.y - z.t.y) })).sort((a, b) => a.a - b.a)[0];
+  if (!naechstes || naechstes.a > mu.mass.S * 0.9) { muSetzen(z.t, ...z.t.heim); return; }
+  if (naechstes.x.form === z.t.form) { muLegen(z.t, naechstes.x); return; }
+  muPasstNicht(z.nr, z.t, naechstes.x);
+}
+document.addEventListener('pointerup', muLoslassen);
+document.addEventListener('pointercancel', muLoslassen);
+
+// Passt nicht: zurück in den Vorrat (wackelt), die Reihe nochmal; 2. Mal leuchtet das passende Teil; 3. Mal legt die App
+async function muPasstNicht(nr, t, ziel) {
+  muSetzen(t, ...t.heim);
+  animieren(t.el, 'wackelt');
+  mu.versuche++;
+  const passend = mu.teile.find((x) => !x.drin && x.form === ziel.form);
+  if (mu.versuche >= 3 && passend) { await warten(450); if (muAktuell(nr)) muLegen(passend, ziel); return; }
+  if (mu.versuche === 2 && passend) passend.el.classList.add('hinweis');
+  if (muRunde().art === 'nach') animieren(mu.vorlage[ziel.i].el, 'huepft');   // das Vorbild darüber zeigt sich
+  else { clearTimeout(mu.timer); await warten(400); muFragen(nr); }
+}
+
+async function muLegen(t, ziel) {
+  const nr = mu.nummer;
+  t.drin = ziel;
+  ziel.belegt = true;
+  mu.versuche = 0;
+  mu.teile.forEach((x) => x.el.classList.remove('hinweis'));
+  t.el.classList.add('drin');
+  muSetzen(t, ziel.x, ziel.y);
+  muKlick();
+  if (mu.ziele.some((x) => !x.belegt)) { muHilfeAbwarten(nr); return; }
+  mu.gesperrt = true;
+  clearTimeout(mu.timer);
+  await warten(400);
+  if (!muAktuell(nr)) return;
+  // Fertig: die ganze Reihe rhythmisch, jedes Teil leuchtet – „Rund, spitz, rund, spitz. Ein Muster!“
+  const r = muRunde();
+  const reihe = r.art === 'nach' ? mu.ziele.map((x) => mu.teile.find((tt) => tt.drin === x).el)
+    : [...mu.vorlage.map((v) => v.el), t.el];
+  if (!(await muZaehlen(nr, `muster-voll-${mu.runde + 1}`, reihe))) return;
+  glockenspiel();
+  await warten(MUSTER_ZEIT.pause);
+  if (!muAktuell(nr)) return;
+  mu.runde++;
+  muRundenZeichnen();
+  if (mu.runde < MUSTER_RUNDEN.length) musterNeueRunde(); else musterAuftrag();
+}
+
+function muKlick() {
+  const c = audio();
+  if (!c) return;
+  const osc = c.createOscillator(), gain = c.createGain(), tt = c.currentTime;
+  osc.frequency.value = 760;
+  gain.gain.setValueAtTime(0.15, tt);
+  gain.gain.exponentialRampToValueAtTime(0.001, tt + 0.15);
+  osc.connect(gain).connect(c.destination);
+  osc.start(tt);
+  osc.stop(tt + 0.17);
+}
+
+// ----- Echte Welt: „Leg ein Muster mit echten Dingen: Löffel, Becher, Löffel, Becher!“ -----
+
+function musterAuftrag() {
+  musterStoppen();
+  const nr = mu.nummer;
+  mu.auftrag = true;
+  mu.fertig = false;
+  $('#btn-muster-daumen').hidden = true;
+  inEcht({ z: mu, nr, aktuell: muAktuell, ansage: muAnsage, buehne: $('#muster-feld'), knopf: $('#btn-muster-daumen'),
+    karteHtml: ['🥄', '🥤', '🥄', '🥤'].map((b) => `<span class="karte-bild">${b}</span>`).join(''), sagen: (nr2) => muAnsage(nr2, 'muster-welt'), zeit: MUSTER_ZEIT });
+}
+
+async function musterAuftragErledigt(nr) {
+  const karte = inEchtBestaetigt(mu, $('#btn-muster-daumen'));
+  if (!karte) return;
+  if (!(await muAnsage(nr, 'zeig-mal'))) return;
+  const bilder = [...karte.querySelectorAll('.karte-bild')];
+  if (!(await muZaehlen(nr, 'muster-welt-fertig', bilder))) return;
+  glockenspiel();
+  await warten(400);
+  spielEnde('muster', musterNeu);
+}
+
+$('#btn-muster-daumen').addEventListener('click', () => { audio(); if (mu.inEcht) musterAuftragErledigt(mu.nummer); });
+
+function musterNeu() {
+  musterStoppen();
+  Object.assign(mu, { runde: 0, fertig: false, inEcht: false, auftrag: false });
+  $('#btn-muster-daumen').hidden = true;
+  muRundenZeichnen();
+  musterNeueRunde();
+}
+
+function musterStarten() {
+  spielEndeWeg('muster');
+  zeigen('muster');
+  musterNeu();
+}
+SPIELE.muster = musterStarten;
+$('#home .spiel-btn[data-spiel="muster"]').innerHTML = `<span class="kachel-muster">${['kreis', 'dreieck', 'kreis', 'dreieck'].map(musterSvg).join('')}</span>`;
+
+$('#btn-muster-home').addEventListener('click', () => { musterStoppen(); wiedergabeStoppen(); zurStartseite(); });
+$('#btn-muster-laut').addEventListener('click', () => {
+  const ende = $('#muster .spiel-ende');
+  if ((ende && !ende.hidden) || mu.fertig || mu.gesperrt || mu.ziehen) return;
+  audio();
+  if (mu.inEcht) { inEchtNochmal(mu); return; }
+  clearTimeout(mu.timer);
+  muFragen(mu.nummer);
+});
+window.addEventListener('resize', () => { if ($('#muster').classList.contains('active') && !mu.auftrag) muAnordnen(); });
 
 // ---------- Elternbereich (2 Sekunden gedrückt halten) ----------
 

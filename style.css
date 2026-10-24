@@ -416,3 +416,25 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 .kachel-klatsch { font-size: 0.8em; line-height: 1; display: flex; gap: 4%; }
 .in-echt-karte .klatsch-karte-bild.leuchtet { box-shadow: 0 0 0 4px #f5c518; }
 @media (prefers-reduced-motion: reduce) { .klatsch-knopf.hinweis { animation: none; } }
+
+/* ---------- Muster legen: Vorlage, Plätze, Vorrat (Teile unterscheiden sich in Form und Helligkeit) ---------- */
+#muster, .muster-feld { touch-action: none; overscroll-behavior: none; }
+.muster-feld { flex: 1; position: relative; min-height: 0; }
+.muster-teil { position: absolute; z-index: 2; border-radius: 14px; }
+.muster-teil svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.muster-teil.fest { background: var(--papier); box-shadow: var(--schatten); padding: 5px; transition: transform 0.2s; }
+.muster-teil.fest.leuchtet, .muster-teil.los.leuchtet { box-shadow: 0 0 0 4px #f5c518; }
+.muster-teil.fest.huepft { animation: huepfen 0.5s ease; }
+.muster-teil.los { left: 0; top: 0; touch-action: none; transition: transform 0.3s ease-out; padding: 5px; }
+.muster-teil.los .figur-bild { display: block; width: 100%; height: 100%; }
+.muster-teil.los.greift { transition: none; z-index: 5; }
+.muster-teil.los.huepft .figur-bild { animation: ding-huepfen 0.4s ease; }
+.muster-teil.los.wackelt .figur-bild { animation: wackeln 0.5s ease; }
+.muster-teil.los.hinweis { box-shadow: 0 0 0 5px #f5c518; }
+.muster-teil.los.hinweis .figur-bild { animation: hinweis-puls 1.6s ease-in-out infinite; }
+@keyframes hinweis-puls { 50% { transform: scale(1.12); } }
+.muster-teil.los.drin { background: var(--papier); box-shadow: var(--schatten); }
+.muster-platz { position: absolute; z-index: 1; border: 3px dashed #c7b08a; border-radius: 14px; }
+.kachel-muster { display: flex; gap: 3%; width: 84%; }
+.kachel-muster svg { width: 23%; height: auto; }
+@media (prefers-reduced-motion: reduce) { .muster-teil.los { transition: none; } .muster-teil.los.hinweis .figur-bild { animation: none; } }

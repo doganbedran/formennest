@@ -9,8 +9,7 @@ alle Daten bleiben auf dem Gerät. Formennest · eine App vom Lauschling – Ges
 **Ausprobieren:** https://doganbedran.github.io/formennest/ – im Browser öffnen, auf dem Handy „Zum Startbildschirm
 hinzufügen“. Elternbereich: ⚙️ oben rechts 2 Sekunden halten. Fragen und Ideen gern als Issue hier auf GitHub.
 
-**Stand:** im Aufbau – das Grundgerüst steht (Elternbereich, Kinder, eigene Stimmen, gemeinsame Pause, offline), die
-Spiele kommen eins nach dem anderen. Konzept: [`docs/konzept.md`](docs/konzept.md).
+**Stand:** fünf Spiele zu Formen, Raum-Lage und Mustern; dazu Elternbereich, Kinder, eigene Stimmen, gemeinsame Pause, offline. Konzept: [`docs/konzept.md`](docs/konzept.md).
 
 ## Spiele
 - 🔷 **Passt rein** (ab 3) – wie die Geometrische Kommode: Kreis, Quadrat und Dreieck (gleiche Farbe, etwa gleiche
@@ -34,7 +33,13 @@ Spiele kommen eins nach dem anderen. Konzept: [`docs/konzept.md`](docs/konzept.m
   nochmal, dann leuchtet der passende Knopf, dann setzt die App ihn ein. Kein Takt, kein Tempo. Vier Runden: AB, BA,
   AAB, ABB. Zum Schluss klatscht und stampft das Kind selbst.
 
-Geplant: „Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
+- 🔺 **Muster legen** (ab 4; mit 3 die erste Runde) – Teile unterscheiden sich in Form und Helligkeit (dunkler Kreis,
+  helles Dreieck, mittleres Quadrat). Runde 1: das Muster ● ▲ ● ▲ genauso darunter legen; ab Runde 2 weiterlegen
+  („Rund, spitz, rund, spitz, rund. Und dann?“): AB, AAB, ABB, ABC. Ein unpassendes Teil gleitet zurück (sonst wäre
+  das Muster kaputt), dann leuchtet das passende, dann legt die App es. Zum Schluss: „Leg ein Muster mit echten Dingen:
+  Löffel, Becher, Löffel, Becher!“
+
+Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
 
 ## Daten neben Wortnest und Zahlennest
 Alle drei Apps liegen unter `doganbedran.github.io` und teilen sich damit den Browser-Speicher. Formennest nutzt darum

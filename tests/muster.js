@@ -1,0 +1,109 @@
+// Testet „Muster legen“: Runde 1 nachlegen (nur passende Teile auf die Plätze), ab Runde 2 weiterlegen mit vorgesprochener
+// Reihe; unpassendes Teil gleitet zurück, Reihe nochmal, 2. Mal leuchtet das passende Teil, 3. Mal legt die App; Teile
+// unterscheiden sich in Form und Helligkeit; fünf Runden (AB, BA, AAB, ABB, ABC); Auftrag mit echten Dingen; kein Text.
+// Frisches Profil. Ansicht am Ende: Runde 5 (ABC) mit Hinweis.
+(async function () {
+  const fehler = [];
+  const pruefe = (b, t) => { if (!b) fehler.push(t); };
+  const warte = (ms) => new Promise((r) => setTimeout(r, ms));
+  const bis = async (fn, ms = 5000) => {
+    const ende = Date.now() + ms;
+    while (!fn() && Date.now() < ende) await warte(20);
+    return fn();
+  };
+  const aktiv = (id) => $(`#${id}`).classList.contains('active');
+  await startFertig;
+
+  const gesagt = [];
+  folgeAbspielen = async (folge) => { gesagt.push(...folge.map((q) => q.url.replace('audio/ansage-', '').replace('.wav', ''))); await warte(5); };
+  zaehlenMitLeuchten = async (name, el) => { gesagt.push(name); el.forEach((e) => e.classList.add('leuchtet')); await warte(5); };
+  Object.assign(MUSTER_ZEIT, { pause: 20, daumen: 100, auftragNochmal: 3000 });
+  const zuletzt = () => gesagt[gesagt.length - 1];
+  const mitte = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+  const ev = (el, typ, p) => el.dispatchEvent(new PointerEvent(typ, { bubbles: true, pointerId: 1, isPrimary: true, clientX: p.x, clientY: p.y }));
+  const schieben = async (t, ziel) => {
+    await warte(350);
+    const von = mitte(t.el), z = mitte(ziel.el);
+    ev(t.el, 'pointerdown', von);
+    for (let i = 1; i <= 6; i++) ev(document, 'pointermove', { x: von.x + ((z.x - von.x) * i) / 6, y: von.y + ((z.y + 30 - von.y) * i) / 6 });
+    ev(document, 'pointerup', { x: z.x, y: z.y + 30 });
+    await warte(30);
+  };
+  const los = (form) => mu.teile.find((t) => !t.drin && t.form === form);
+  const bereit = () => bis(() => !mu.gesperrt);
+
+  // 1. Ansagen und Teile: Form UND Helligkeit verschieden
+  pruefe(ANSAGEN['muster-reihe-2'][0] === 'Spitz, rund, spitz, rund, spitz. Und dann?' && ANSAGEN['muster-voll-1'][0] === 'Rund, spitz, rund, spitz. Ein Muster!', 'Ansagen');
+  const fuellung = (f) => new DOMParser().parseFromString(musterSvg(f), 'image/svg+xml').querySelector('[fill]').getAttribute('fill');
+  pruefe(new Set(['kreis', 'dreieck', 'quadrat'].map(fuellung)).size === 3, 'Teile nicht verschieden hell');
+  pruefe(MUSTER_RUNDEN.every((r, i) => ANSAGEN[`muster-voll-${i + 1}`][0].split(/[,.]/).filter((w) => /rund|spitz|eckig/i.test(w)).length === r.reihe.length + (r.fehlt ? 1 : 0)), 'Reihe und Aufnahme passen nicht');
+
+  // 2. Runde 1 nachlegen: vier Plätze unter der Vorlage, vier Teile
+  speicher.schreiben('spieleAus', []);
+  einstellungenLaden();
+  spieleZeigen();
+  const kachel = $('#home .spiel-btn[data-spiel="muster"]');
+  pruefe(!kachel.hidden, 'Kachel fehlt');
+  kachel.click();
+  pruefe(aktiv('muster'), 'Spiel nicht geöffnet');
+  await bereit();
+  pruefe(mu.vorlage.length === 4 && mu.ziele.length === 4 && mu.teile.length === 4 && zuletzt() === 'muster-nachlegen', `Start: ${gesagt}`);
+  pruefe(!/[A-Za-zÄÖÜäöüß0-9]/.test($('#muster').innerText), `Text auf dem Kinder-Bildschirm: ${$('#muster').innerText}`);
+  // falsches Teil auf Platz 1 (unter dem Kreis): gleitet zurück
+  await schieben(los('dreieck'), mu.ziele[0]);
+  pruefe(!mu.ziele[0].belegt && mu.teile.every((t) => !t.drin), 'Falsches Teil bleibt liegen');
+  for (const z of mu.ziele) await schieben(los(z.form), z);
+  await bis(() => mu.runde === 1 && !mu.gesperrt);
+  pruefe(gesagt.includes('muster-voll-1') && zuletzt() === 'muster-reihe-2', `Runde 1 fertig: ${gesagt.slice(-3)}`);
+
+  // 3. Runde 2 weiterlegen: eine Lücke; falsch → zurück, Reihe nochmal; 2. Mal Hinweis; 3. Mal legt die App
+  pruefe(mu.ziele.length === 1 && mu.teile.length === 2, 'Runde 2: nicht eine Lücke und zwei Teile');
+  const ziel = mu.ziele[0];
+  const falsch = mu.teile.find((t) => t.form !== ziel.form);
+  await schieben(falsch, ziel);
+  await bis(() => !mu.gesperrt && gesagt.filter((g) => g === 'muster-reihe-2').length === 2);
+  pruefe(!ziel.belegt && gesagt.filter((g) => g === 'muster-reihe-2').length === 2, 'Falsch: Reihe nicht nochmal');
+  await schieben(falsch, ziel);
+  await bis(() => !mu.gesperrt);
+  pruefe(los(ziel.form).el.classList.contains('hinweis'), '2. Mal: passendes Teil leuchtet nicht');
+  await schieben(falsch, ziel);
+  await bis(() => mu.runde === 2);
+  pruefe(gesagt.includes('muster-voll-2') && !gesagt.some((g) => /falsch|nein/.test(g)), '3. Mal: App legt nicht');
+
+  // 4. Runden 3–5 richtig, dann Auftrag
+  for (let r = 2; r < MUSTER_RUNDEN.length; r++) {
+    await bis(() => mu.runde === r && !mu.gesperrt);
+    if (r === 4) pruefe(mu.teile.length === 3 && mu.ziele[0].form === 'quadrat', 'ABC-Runde nicht mit drei Formen');
+    await schieben(los(mu.ziele[0].form), mu.ziele[0]);
+  }
+  await bis(() => mu.inEcht && !$('#btn-muster-daumen').hidden);
+  const welt = gesagt.slice(gesagt.lastIndexOf('muster-voll-5'));
+  pruefe(welt.join() === 'muster-voll-5,jetzt-in-echt,muster-welt', `Auftrag: ${welt}`);
+  $('#btn-muster-daumen').click();
+  await bis(() => $('#muster .spiel-ende') && !$('#muster .spiel-ende').hidden);
+  pruefe(gesagt.slice(-2).join() === 'zeig-mal,muster-welt-fertig', `Schluss: ${gesagt.slice(-2)}`);
+
+  // 5. Anordnung (Runde 1: zwei Reihen und Vorrat) im Bild, ohne Überlappen
+  $('#muster .ende-nochmal').click();
+  await bereit();
+  const feldR = $('#muster-feld').getBoundingClientRect();
+  const alle = [...mu.vorlage.map((v) => v.el), ...mu.ziele.map((z) => z.el), ...mu.teile.map((t) => t.el)].map((e) => e.getBoundingClientRect());
+  pruefe(alle.every((r) => r.left >= feldR.left - 1 && r.right <= feldR.right + 1 && r.top >= feldR.top - 1 && r.bottom <= feldR.bottom + 1), 'Etwas ragt heraus');
+  pruefe(!alle.some((a, i) => alle.some((b, k) => k > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)), 'Teile überlappen');
+
+  // Ansicht: Runde 5 (ABC), das passende Teil leuchtet
+  musterStoppen();
+  mu.runde = 4;
+  muRundenZeichnen();
+  musterNeueRunde();
+  await bereit();
+  los('quadrat').el.classList.add('hinweis');
+
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;color:#fff;font:12px monospace;padding:6px;z-index:9;background:'
+    + (fehler.length ? '#c62828' : '#1b7f3a');
+  d.textContent = fehler.length ? 'FEHLER: ' + fehler.join(' | ') : 'MUSTER OK';
+  document.body.appendChild(d);
+})().catch((e) => {
+  document.body.insertAdjacentHTML('beforeend', `<div style="position:fixed;bottom:0;background:#c62828;color:#fff;padding:6px;z-index:9">ABSTURZ: ${e}</div>`);
+});

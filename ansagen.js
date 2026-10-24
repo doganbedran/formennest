@@ -67,4 +67,17 @@ const ANSAGEN = {
   'klatsch-welt': ['Jetzt du! Klatsch und stampf: klatsch, stampf, klatsch, stampf, klatsch!', 'Klatsch – Stampf'],
   'klatsch-welt-mit': ['Wir machen es zusammen!', 'Klatsch – Stampf'],
   'klatsch-ende': ['Du hast ein Muster geklatscht und gestampft!', 'Klatsch – Stampf'],
+  // Muster legen (rund = Kreis, spitz = Dreieck, eckig = Quadrat; je Wort ein Teil, der letzte Satz ein eigener Schritt)
+  'muster-nachlegen': ['Leg das Muster genauso darunter!', 'Muster legen'],
+  'muster-voll-1': ['Rund, spitz, rund, spitz. Ein Muster!', 'Muster legen'],
+  'muster-reihe-2': ['Spitz, rund, spitz, rund, spitz. Und dann?', 'Muster legen'],
+  'muster-voll-2': ['Spitz, rund, spitz, rund, spitz, rund. Ein Muster!', 'Muster legen'],
+  'muster-reihe-3': ['Rund, rund, spitz, rund, rund. Und dann?', 'Muster legen'],
+  'muster-voll-3': ['Rund, rund, spitz, rund, rund, spitz. Ein Muster!', 'Muster legen'],
+  'muster-reihe-4': ['Rund, spitz, spitz, rund, spitz. Und dann?', 'Muster legen'],
+  'muster-voll-4': ['Rund, spitz, spitz, rund, spitz, spitz. Ein Muster!', 'Muster legen'],
+  'muster-reihe-5': ['Rund, spitz, eckig, rund, spitz. Und dann?', 'Muster legen'],
+  'muster-voll-5': ['Rund, spitz, eckig, rund, spitz, eckig. Ein Muster!', 'Muster legen'],
+  'muster-welt': ['Leg ein Muster mit echten Dingen: Löffel, Becher, Löffel, Becher!', 'Muster legen'],
+  'muster-welt-fertig': ['Löffel, Becher, Löffel, Becher. Ein Muster!', 'Muster legen'],
 };

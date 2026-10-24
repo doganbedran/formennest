@@ -43,6 +43,7 @@ seite stimme 15000
 seite pause 8000
 seite daten 10000 "$WORTNEST"
 seite passt 45000
+seite maus 45000
 seite ton 15000
 seite daumen 10000
 seite sicherheit 15000

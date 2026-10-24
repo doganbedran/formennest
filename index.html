@@ -111,6 +111,7 @@
     <!-- Spiele: große Symbole, die Kinder ohne Lesen verstehen; sichtbar nur, was fertig und im Regal ist -->
     <nav class="spiele-raster" aria-label="Spiele">
       <button class="spiel-btn" data-spiel="passt" aria-label="Passt rein" hidden></button>
+      <button class="spiel-btn" data-spiel="maus" aria-label="Wo ist die Maus?" hidden></button>
     </nav>
     <!-- Noch kein Spiel im Regal: ruhiges Nest statt leerer Seite -->
     <div id="home-leer" class="home-leer" hidden><img src="bilder/nest.svg" alt=""></div>
@@ -125,6 +126,18 @@
     </header>
     <div id="passt-feld" class="passt-feld"></div>
     <div class="daumen-platz"><button id="btn-passt-daumen" class="daumen-btn" aria-label="Gemacht" hidden>👍</button></div>
+  </section>
+
+  <!-- Wo ist die Maus? Lagewörter auf/in/unter als Drei-Stufen-Lektion -->
+  <section id="maus" class="screen">
+    <header class="topbar">
+      <button id="btn-maus-home" class="icon-btn" aria-label="Zurück">🏠</button>
+      <div id="maus-runden" class="runden-eier"></div>
+      <button id="btn-maus-laut" class="icon-btn" aria-label="Nochmal hören">🔊</button>
+    </header>
+    <div id="maus-symbol" class="stufen-symbol" aria-hidden="true">👀</div>
+    <div id="maus-feld" class="maus-feld"></div>
+    <div class="daumen-platz"><button id="btn-maus-daumen" class="daumen-btn" aria-label="Gemacht" hidden>👍</button></div>
   </section>
 
   <section id="pause" class="screen">

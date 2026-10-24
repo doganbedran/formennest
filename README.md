@@ -19,8 +19,12 @@ Spiele kommen eins nach dem anderen. Konzept: [`docs/konzept.md`](docs/konzept.m
   Runden, die Mulden liegen jedes Mal anders, in Runde 3 leicht gedreht. Zum Schluss: „Such etwas Rundes bei dir zu
   Hause!“ – „Fahr mit dem Finger rundherum!“
 
-Geplant: „Wo ist die Maus?“ (auf/in/unter), „Zeig mir den Kreis“ (Formen benennen), „Klatsch – Stampf“ (Klatschmuster),
-„Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
+- 🐭 **Wo ist die Maus?** (ab 3) – Lagewörter als Drei-Stufen-Lektion an einer Kiste auf Beinen mit halb offenem
+  Deckel: 👀 „Die Maus ist auf der Kiste.“ → 👂 „Setz die Maus unter die Kiste!“ (schieben) → 🗣️ „Wo ist die Maus? Sag
+  es!“. Woanders hingesetzt: „Jetzt ist sie in der Kiste.“, dann leuchtet der Platz, dann läuft sie selbst hin. Zum
+  Schluss: „Setz dein Kuscheltier unter den Tisch!“
+
+Geplant: „Zeig mir den Kreis“ (Formen benennen), „Klatsch – Stampf“ (Klatschmuster), „Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
 
 ## Daten neben Wortnest und Zahlennest
 Alle drei Apps liegen unter `doganbedran.github.io` und teilen sich damit den Browser-Speicher. Formennest nutzt darum

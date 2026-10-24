@@ -365,3 +365,23 @@ body.laedt #home .spiele-raster { visibility: hidden; }
   to { transform: rotate(360deg) translateY(calc(var(--r) * -1)) rotate(-360deg); } }
 #passt-feld .passt-vormachen { top: 50%; transform: translateY(-50%); }
 @media (prefers-reduced-motion: reduce) { .einsatz { transition: none; } .rund-finger { animation: none; } }
+
+/* ---------- Wo ist die Maus? Kiste in zwei Ebenen (hinten Inneres, vorn Wand/Deckel/Beine), Maus dazwischen ---------- */
+#maus, .maus-feld { touch-action: none; overscroll-behavior: none; }
+.maus-feld { flex: 1; position: relative; min-height: 0; }
+.kiste-hinten, .kiste-vorn { position: absolute; display: block; overflow: visible; }
+.kiste-hinten { z-index: 0; }
+.kiste-vorn { z-index: 2; pointer-events: none; }
+.maus { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; justify-content: center;
+  line-height: 1; touch-action: none; transition: transform 0.35s ease-out; }
+.maus.drin { z-index: 1; }
+.maus.greift { transition: none; z-index: 5; }
+.maus.huepft .figur-bild { animation: ding-huepfen 0.4s ease; }
+.figur-bild { display: inline-block; }
+/* Hilfe: der gesuchte Platz leuchtet (gelber Ring, heller als die Umgebung) */
+.platz { position: absolute; border-radius: 50%; pointer-events: none; z-index: 4; }
+.platz.hinweis { box-shadow: inset 0 0 0 5px #f5c518, 0 0 12px #f5c518; animation: warten-puls 1.6s ease-in-out infinite; }
+.kachel-maus { display: grid; justify-items: center; width: 72%; }
+.kachel-maus .k-maus { font-size: 0.6em; line-height: 1; margin-bottom: -4px; }
+.kachel-maus svg { width: 100%; height: auto; }
+@media (prefers-reduced-motion: reduce) { .maus { transition: none; } .platz.hinweis { animation: none; } }

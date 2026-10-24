@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 2;
+const APP_VERSION = 3;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -152,12 +152,13 @@ function kindBildHtml(k) {
 
 // Reihenfolge = Reihenfolge im Konzept (so werden sie nach und nach gebaut und freigeschaltet).
 // Montessori: ein Material kommt erst ins Regal, wenn es gezeigt wurde. Gespeichert wird, was AUSGEBLENDET ist.
-const ALLE_SPIELE = ['passt'];
+const ALLE_SPIELE = ['passt', 'maus'];
 const START_REGAL = ['passt'];
 const START_AUS = ALLE_SPIELE.filter((id) => !START_REGAL.includes(id));
 // Für Eltern: was jedes Spiel tut (die Kacheln zeigen den Kindern nur ein Bild)
 const SPIEL_INFO = {
   passt: 'Formen in die passende Mulde schieben – Kreis, Quadrat, Dreieck (ab 3)',
+  maus: 'Lagewörter auf, in, unter: die Maus an die Kiste setzen (ab 3)',
 };
 // Fertige Spiele: id -> Startfunktion. Was hier fehlt, erscheint weder auf der Startseite noch im Regal.
 const SPIELE = {};
@@ -945,6 +946,340 @@ $('#btn-passt-laut').addEventListener('click', () => {
   paAnsage(pa.nummer, 'passt-start').then((ok) => { if (ok) { pa.gesperrt = false; paHilfeAbwarten(pa.nummer); } });
 });
 window.addEventListener('resize', () => { if ($('#passt').classList.contains('active') && !pa.auftrag) paAnordnen(); });
+
+// ---------- Wo ist die Maus? (ab 3): die Lagewörter „auf“, „in“, „unter“ – Drei-Stufen-Lektion ----------
+// Eine Kiste auf Beinen (sonst gäbe es kein „unter“) mit halb offenem Deckel: auf dem Deckel sitzt die Maus „auf der
+// Kiste“, in der Öffnung schaut nur ihr Kopf heraus („in der Kiste“), zwischen den Beinen ist „unter der Kiste“.
+// 👀 Die Maus huscht hin: „Die Maus ist auf der Kiste.“ · 👂 „Setz die Maus in die Kiste!“ (schieben) ·
+// 🗣️ „Wo ist die Maus? Sag es!“ (ohne Prüfung). Kein „falsch“: woanders hingesetzt sagt die App, wo sie jetzt ist
+// („Jetzt ist sie unter der Kiste.“), beim zweiten Mal leuchtet der Platz, beim dritten läuft die Maus selbst hin.
+// Zum Schluss in echt: „Setz dein Kuscheltier unter den Tisch!“ (oder „auf einen Stuhl“).
+const MAUS_LAGEN = ['auf', 'in', 'unter'];
+const MAUS_STUFEN = [3, 3, 3];
+const MAUS_SYMBOL = ['👀', '👂', '🗣️'];
+const MAUS_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 9000, antwort: 5000, pause: 900, daumen: 6000, auftragNochmal: 16000 };
+const ms = { stufe: 0, schritt: 0, punkte: 0, folge: [], ziel: null, lage: 'start', versuche: 0, ziehen: null,
+  gesperrt: true, timer: null, nummer: 0, fertig: false, inEcht: false, auftrag: false, mass: null, welt: 'unter' };
+const msBausteine = spielBausteine('maus', ms);
+const { aktuell: msAktuell, ansage: msAnsage } = msBausteine;
+SPIEL_STOPPEN.push(() => mausStoppen());
+
+function mausStoppen() {
+  msBausteine.stoppen();
+  ms.ziehen = null;
+}
+
+function msRundenZeichnen() {
+  let n = 0;
+  $('#maus-runden').innerHTML = MAUS_STUFEN.map((anzahl) => `<span class="gruppe">${
+    Array.from({ length: anzahl }, () => `<span class="${n++ < ms.punkte ? 'voll' : ''}"></span>`).join('')}</span>`).join('');
+}
+
+// Kiste in der Mitte; Plätze der Maus in Feld-Pixeln
+function msMasse() {
+  const feld = $('#maus-feld');
+  const W = feld.clientWidth, H = feld.clientHeight;
+  const B = Math.min(W * 0.56, H * 0.42, 340);   // Breite der Kiste
+  const kH = B * 0.5, beinH = B * 0.36, M = B * 0.34;
+  const x0 = W / 2 - B / 2, y0 = Math.max(M * 1.1, (H - kH - beinH) / 2 - M * 0.2);
+  const boden = y0 + kH + beinH;
+  const plaetze = {
+    auf: [x0 + B * 0.74, y0 - M * 0.42],
+    in: [x0 + B * 0.27, y0 + M * 0.12],
+    unter: [W / 2, boden - M * 0.5],
+    start: [Math.max(M * 0.6, x0 - M * 0.9), boden - M * 0.5],
+  };
+  return { W, H, B, kH, beinH, M, x0, y0, boden, plaetze };
+}
+
+function msMausSetzen(x, y) {
+  const { M } = ms.mass;
+  ms.maus.style.transform = `translate(${x - M / 2}px, ${y - M / 2}px)`;
+  ms.maus.dataset.x = x;
+  ms.maus.dataset.y = y;
+}
+
+// Maus an ihren Platz; „in“ liegt hinter der Vorderwand (nur der Kopf schaut heraus)
+function msMausAufPlatz() {
+  ms.maus.classList.toggle('drin', ms.lage === 'in');
+  msMausSetzen(...ms.mass.plaetze[ms.lage]);
+}
+
+function msAnordnen() {
+  const feld = $('#maus-feld');
+  if (!feld.clientWidth || !ms.maus) return;
+  ms.mass = msMasse();
+  const { B, kH, beinH, M, x0, y0 } = ms.mass;
+  const kiste = feld.querySelector('.kiste-vorn'), hinten = feld.querySelector('.kiste-hinten');
+  [kiste, hinten].forEach((el) => Object.assign(el.style, { left: `${x0}px`, top: `${y0 - B * 0.06}px`, width: `${B}px`, height: `${kH + beinH + B * 0.06}px` }));
+  Object.assign(ms.maus.style, { width: `${M}px`, height: `${M}px`, fontSize: `${M * 0.82}px` });
+  feld.querySelectorAll('.platz').forEach((el) => {
+    const [x, y] = ms.mass.plaetze[el.dataset.lage];
+    Object.assign(el.style, { left: `${x - M * 0.7}px`, top: `${y - M * 0.7}px`, width: `${M * 1.4}px`, height: `${M * 1.4}px` });
+  });
+  msMausAufPlatz();
+}
+
+// Kiste in zwei Ebenen: hinten das dunkle Innere, vorn Vorderwand, Deckel (rechte Hälfte) und Beine
+function msFeldAufbauen() {
+  const feld = $('#maus-feld');
+  feld.closest('.screen').classList.remove('ruhig');
+  const v = '0 0 100 92';   // Kiste 100 breit; oben 6 Rand, Kasten 50 hoch, Beine 36
+  feld.innerHTML = `<svg class="kiste-hinten" viewBox="${v}" preserveAspectRatio="none" aria-hidden="true">`
+    + '<rect x="2" y="6" width="96" height="10" fill="#5a3a22"/></svg>'
+    + MAUS_LAGEN.map((l) => `<div class="platz" data-lage="${l}"></div>`).join('')
+    + '<div class="maus" aria-hidden="true"><span class="figur-bild">🐭</span></div>'
+    + `<svg class="kiste-vorn" viewBox="${v}" preserveAspectRatio="none" aria-hidden="true">`
+    + '<rect x="2" y="14" width="96" height="42" rx="3" fill="#c98f4e" stroke="#4a3f35" stroke-width="2.5"/>'
+    + '<path d="M8 28 H92 M8 42 H92" stroke="#a8743a" stroke-width="2"/>'
+    + '<rect x="50" y="6" width="50" height="9" rx="2" fill="#d9a466" stroke="#4a3f35" stroke-width="2.5"/>'
+    + '<rect x="8" y="56" width="9" height="36" rx="2" fill="#a8743a" stroke="#4a3f35" stroke-width="2.5"/>'
+    + '<rect x="83" y="56" width="9" height="36" rx="2" fill="#a8743a" stroke="#4a3f35" stroke-width="2.5"/></svg>';
+  ms.maus = feld.querySelector('.maus');
+  ms.maus.style.transition = 'none';
+  msAnordnen();
+  void feld.offsetWidth;
+  ms.maus.style.transition = '';
+}
+
+const msPlatzEl = (lage) => $(`#maus-feld .platz[data-lage="${lage}"]`);
+
+// Maus huscht an einen Platz
+function msHuschen(lage) {
+  ms.lage = lage;
+  msMausAufPlatz();
+  animieren(ms.maus, 'huepft');
+}
+
+// Kleines Quieken (zwei kurze hohe Töne), wenn die Maus richtig sitzt
+function msQuiek() {
+  const c = audio();
+  if (!c) return;
+  [0, 0.12].forEach((v) => {
+    const osc = c.createOscillator(), gain = c.createGain(), t = c.currentTime + v;
+    osc.frequency.setValueAtTime(1800, t);
+    osc.frequency.exponentialRampToValueAtTime(2600, t + 0.07);
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.1);
+  });
+}
+
+// Stufe 1: die Maus huscht hin, „Die Maus ist auf der Kiste.“ – Tippen auf die Maus: nochmal hören
+async function msStufe1() {
+  mausStoppen();
+  const nr = ms.nummer;
+  const lage = ms.folge[ms.schritt];
+  msHuschen(lage);
+  await warten(400);
+  if (!(await msAnsage(nr, `maus-ist-${lage}`))) return;
+  ms.gesperrt = false;
+  ms.timer = setTimeout(() => msAktuell(nr) && !ms.gesperrt && msWeiter(nr), MAUS_ZEIT.weiterOhneTipp);
+}
+
+// Stufe 2: Maus sitzt neben der Kiste, „Setz die Maus in die Kiste!“ – das Kind schiebt
+async function msStufe2() {
+  mausStoppen();
+  const nr = ms.nummer;
+  ms.ziel = ms.folge[ms.schritt];
+  ms.versuche = 0;
+  document.querySelectorAll('#maus-feld .platz').forEach((p) => p.classList.remove('hinweis'));
+  ms.lage = 'start';
+  msMausAufPlatz();
+  await warten(300);
+  if (!msAktuell(nr)) return;
+  msFragen(nr);
+}
+
+async function msFragen(nr) {
+  if (!msAktuell(nr)) return;
+  ms.gesperrt = true;
+  if (!(await msAnsage(nr, `maus-setz-${ms.ziel}`))) return;
+  ms.gesperrt = false;
+  clearTimeout(ms.timer);
+  ms.timer = setTimeout(() => { if (msAktuell(nr) && !ms.gesperrt && !ms.ziehen) { msPlatzEl(ms.ziel).classList.add('hinweis'); msFragen(nr); } }, MAUS_ZEIT.nochmalFragen);
+}
+
+// Stufe 3: Maus sitzt, „Wo ist die Maus? Sag es!“ – nach einer Weile sagt die App es selbst (keine Prüfung)
+async function msStufe3() {
+  mausStoppen();
+  const nr = ms.nummer;
+  const lage = ms.folge[ms.schritt];
+  msHuschen(lage);
+  await warten(400);
+  if (!(await msAnsage(nr, 'maus-sag-es'))) return;
+  ms.gesperrt = false;
+  ms.timer = setTimeout(() => msAktuell(nr) && !ms.gesperrt && msAntwort(nr), MAUS_ZEIT.antwort);
+}
+
+async function msAntwort(nr) {
+  ms.gesperrt = true;
+  clearTimeout(ms.timer);
+  animieren(ms.maus, 'huepft');
+  if (!(await msAnsage(nr, `maus-ist-${ms.lage}`))) return;
+  await warten(MAUS_ZEIT.pause);
+  msWeiter(nr);
+}
+
+// Tippen auf die Maus (Stufe 1 und 3): sie sagt, wo sie ist
+$('#maus-feld').addEventListener('click', (e) => {
+  if (!e.target.closest('.maus') || ms.gesperrt || ms.stufe === 1 || ms.stufe > 2) return;
+  audio();
+  msAntwort(ms.nummer);
+});
+
+$('#maus-feld').addEventListener('pointerdown', (e) => {
+  if (!e.target.closest('.maus') || ms.stufe !== 1) return;
+  e.preventDefault();
+  if (ms.ziehen || ms.gesperrt) return;
+  audio();
+  ms.ziehen = { id: e.pointerId, sx: e.clientX, sy: e.clientY, bewegt: false, feld: $('#maus-feld').getBoundingClientRect(), nr: ms.nummer };
+  ms.maus.classList.add('greift');
+  ms.maus.classList.remove('drin');
+  try { ms.maus.setPointerCapture(e.pointerId); } catch { /* synthetische Ereignisse (Tests) */ }
+});
+
+document.addEventListener('pointermove', (e) => {
+  const z = ms.ziehen;
+  if (!z || e.pointerId !== z.id) return;
+  if (Math.hypot(e.clientX - z.sx, e.clientY - z.sy) > 8) z.bewegt = true;
+  if (z.bewegt) msMausSetzen(e.clientX - z.feld.left, e.clientY - z.feld.top - 30);
+});
+
+function msLoslassen(e) {
+  const z = ms.ziehen;
+  if (!z || e.pointerId !== z.id) return;
+  ms.ziehen = null;
+  ms.maus.classList.remove('greift');
+  if (z.nr !== ms.nummer || !msAktuell(z.nr)) return;
+  if (!z.bewegt) { msMausAufPlatz(); animieren(ms.maus, 'huepft'); return; }
+  const x = Number(ms.maus.dataset.x), y = Number(ms.maus.dataset.y);
+  const naechste = MAUS_LAGEN.map((l) => ({ l, a: Math.hypot(ms.mass.plaetze[l][0] - x, ms.mass.plaetze[l][1] - y) })).sort((a, b) => a.a - b.a)[0];
+  // Weit weg von allen Plätzen: zurück neben die Kiste
+  if (naechste.a > ms.mass.M * 1.25) { ms.lage = 'start'; msMausAufPlatz(); return; }
+  ms.lage = naechste.l;
+  msMausAufPlatz();
+  msGesetzt(z.nr);
+}
+document.addEventListener('pointerup', msLoslassen);
+document.addEventListener('pointercancel', msLoslassen);
+
+async function msGesetzt(nr) {
+  clearTimeout(ms.timer);
+  ms.gesperrt = true;
+  if (ms.lage === ms.ziel) {
+    msPlatzEl(ms.ziel).classList.remove('hinweis');
+    msQuiek();
+    glockenspiel();
+    animieren(ms.maus, 'huepft');
+    await warten(400);
+    if (!(await msAnsage(nr, `maus-ist-${ms.lage}`))) return;
+    await warten(MAUS_ZEIT.pause);
+    msWeiter(nr);
+    return;
+  }
+  ms.versuche++;
+  // Woanders hingesetzt: sagen, wo sie jetzt ist (benennen statt bewerten), dann die Bitte nochmal
+  if (!(await msAnsage(nr, `maus-jetzt-${ms.lage}`))) return;
+  if (ms.versuche === 2) msPlatzEl(ms.ziel).classList.add('hinweis');
+  if (ms.versuche >= 3) {
+    await warten(300);
+    if (!msAktuell(nr)) return;
+    msHuschen(ms.ziel);
+    msPlatzEl(ms.ziel).classList.remove('hinweis');
+    if (!(await msAnsage(nr, `maus-ist-${ms.ziel}`))) return;
+    await warten(MAUS_ZEIT.pause);
+    msWeiter(nr);
+    return;
+  }
+  await warten(300);
+  msFragen(nr);
+}
+
+function msWeiter(nr) {
+  if (!msAktuell(nr)) return;
+  ms.punkte++;
+  ms.schritt++;
+  msRundenZeichnen();
+  if (ms.schritt < MAUS_STUFEN[ms.stufe]) { msSchritt(); return; }
+  msNaechsteStufe();
+}
+
+function msSchritt() {
+  $('#maus-symbol').textContent = MAUS_SYMBOL[ms.stufe] || '';
+  [msStufe1, msStufe2, msStufe3, mausAuftrag][ms.stufe]();
+}
+
+async function msNaechsteStufe() {
+  mausStoppen();
+  const nr = ms.nummer;
+  glockenspiel();
+  ms.stufe++;
+  ms.schritt = 0;
+  ms.folge = mischen(MAUS_LAGEN);
+  await warten(700);
+  if (!msAktuell(nr)) return;
+  msSchritt();
+  animieren($('#maus-symbol'), 'huepft');
+}
+
+// ----- Echte Welt: „Setz dein Kuscheltier unter den Tisch!“ – nach 👍 „Dein Kuscheltier ist unter dem Tisch!“ -----
+
+function mausAuftrag() {
+  mausStoppen();
+  const nr = ms.nummer;
+  ms.auftrag = true;
+  ms.fertig = false;
+  $('#btn-maus-daumen').hidden = true;
+  ms.welt = zufall(['unter', 'auf']);
+  const bild = ms.welt === 'unter' ? '<span class="karte-bild">🧸</span><span class="karte-bild">⬇️</span>' : '<span class="karte-bild">🧸</span><span class="karte-bild">⬆️</span>';
+  inEcht({ z: ms, nr, aktuell: msAktuell, ansage: msAnsage, buehne: $('#maus-feld'), knopf: $('#btn-maus-daumen'),
+    karteHtml: bild, sagen: (nr2) => msAnsage(nr2, `maus-welt-${ms.welt}`), zeit: MAUS_ZEIT });
+}
+
+async function mausAuftragErledigt(nr) {
+  const karte = inEchtBestaetigt(ms, $('#btn-maus-daumen'));
+  if (!karte) return;
+  animieren(karte, 'huepft');
+  glockenspiel();
+  await warten(400);
+  if (!(await msAnsage(nr, `maus-welt-fertig-${ms.welt}`))) return;
+  spielEnde('maus', mausNeu);
+}
+
+$('#btn-maus-daumen').addEventListener('click', () => { audio(); if (ms.inEcht) mausAuftragErledigt(ms.nummer); });
+
+function mausNeu() {
+  mausStoppen();
+  Object.assign(ms, { stufe: 0, schritt: 0, punkte: 0, folge: [...MAUS_LAGEN], lage: 'start', fertig: false, inEcht: false, auftrag: false });
+  $('#btn-maus-daumen').hidden = true;
+  msFeldAufbauen();
+  msRundenZeichnen();
+  msSchritt();
+}
+
+function mausStarten() {
+  spielEndeWeg('maus');
+  zeigen('maus');
+  mausNeu();
+}
+SPIELE.maus = mausStarten;
+$('#home .spiel-btn[data-spiel="maus"]').innerHTML = '<span class="kachel-maus"><span class="k-maus">🐭</span>'
+  + '<svg viewBox="0 0 100 60" aria-hidden="true"><rect x="2" y="2" width="96" height="34" rx="3" fill="#c98f4e" stroke="#4a3f35" stroke-width="3"/>'
+  + '<rect x="8" y="36" width="9" height="22" fill="#a8743a" stroke="#4a3f35" stroke-width="2.5"/><rect x="83" y="36" width="9" height="22" fill="#a8743a" stroke="#4a3f35" stroke-width="2.5"/></svg></span>';
+
+$('#btn-maus-home').addEventListener('click', () => { mausStoppen(); wiedergabeStoppen(); zurStartseite(); });
+$('#btn-maus-laut').addEventListener('click', () => {
+  const ende = $('#maus .spiel-ende');
+  if ((ende && !ende.hidden) || ms.fertig || ms.gesperrt || ms.ziehen) return;
+  audio();
+  if (ms.inEcht) { inEchtNochmal(ms); return; }
+  if (ms.stufe === 1) { clearTimeout(ms.timer); ms.nummer++; msFragen(ms.nummer); return; }
+  msSchritt();
+});
+window.addEventListener('resize', () => { if ($('#maus').classList.contains('active') && !ms.auftrag && ms.maus) msAnordnen(); });
 
 // ---------- Elternbereich (2 Sekunden gedrückt halten) ----------
 

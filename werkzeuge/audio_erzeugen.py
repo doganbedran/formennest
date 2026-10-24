@@ -55,6 +55,14 @@ def aus_traeger(stimme, wort, rate, tempo, zeichen='.'):
     return trimmen(voll[schnitt:])
 
 
+# Manche Wörter spricht Piper normal schnell undeutlich, langsamer aber gut (Rückmeldung des Users: „Dreieck“)
+LANGSAMER = {'Dreieck': 1.35}
+
+
+def tempo_fuer(satz, normal=1.05):
+    return max([normal] + [t for wort, t in LANGSAMER.items() if wort in satz])
+
+
 def satz_sprechen(stimme, satz, rate, tempo):
     kern = satz.strip().rstrip('.!?')
     if kern.lower() in ALLEIN_SCHLECHT:
@@ -121,7 +129,7 @@ def main():
                 elif satz.strip().rstrip('.!?').lower() in ALLEIN_SCHLECHT:
                     audio = satz_sprechen(stimme, satz, rate, 1.05)
                 else:
-                    audio = synth(stimme, satz, tempo=1.05)
+                    audio = synth(stimme, satz, tempo=tempo_fuer(satz))
                 speichern(ziel / f'ansage-{name}.wav', audio, rate, args.neu)
 
 

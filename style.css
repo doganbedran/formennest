@@ -385,3 +385,13 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 .kachel-maus .k-maus { font-size: 0.6em; line-height: 1; margin-bottom: -4px; }
 .kachel-maus svg { width: 100%; height: auto; }
 @media (prefers-reduced-motion: reduce) { .maus { transition: none; } .platz.hinweis { animation: none; } }
+
+/* ---------- Zeig mir den Kreis: Formkarten (alle Formen gleiche Farbe), Ecken leuchten als Hilfe ---------- */
+.mengen-karten.zwei { grid-template-columns: repeat(2, min(170px, 40vw, 26vh)); }
+@media (orientation: landscape) { .mengen-karten.zwei { grid-template-columns: repeat(2, min(230px, 30vw, 50vh)); } }
+.form-karte { padding: 10%; }
+.form-karte svg, .kachel-formen svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.form-karte .ecke, .kachel-formen .ecke { fill: transparent; stroke: none; }
+.form-karte .ecke.leuchtet { fill: #f5c518; stroke: #b07800; stroke-width: 3; }
+.kachel-formen { display: flex; gap: 6%; width: 82%; align-items: center; }
+.kachel-formen svg { width: 30%; height: auto; }

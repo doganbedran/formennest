@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 3;
+const APP_VERSION = 4;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -152,13 +152,14 @@ function kindBildHtml(k) {
 
 // Reihenfolge = Reihenfolge im Konzept (so werden sie nach und nach gebaut und freigeschaltet).
 // Montessori: ein Material kommt erst ins Regal, wenn es gezeigt wurde. Gespeichert wird, was AUSGEBLENDET ist.
-const ALLE_SPIELE = ['passt', 'maus'];
+const ALLE_SPIELE = ['passt', 'maus', 'formen'];
 const START_REGAL = ['passt'];
 const START_AUS = ALLE_SPIELE.filter((id) => !START_REGAL.includes(id));
 // Für Eltern: was jedes Spiel tut (die Kacheln zeigen den Kindern nur ein Bild)
 const SPIEL_INFO = {
   passt: 'Formen in die passende Mulde schieben – Kreis, Quadrat, Dreieck (ab 3)',
   maus: 'Lagewörter auf, in, unter: die Maus an die Kiste setzen (ab 3)',
+  formen: 'Kreis, Quadrat und Dreieck benennen und wiedererkennen, auch gedreht (ab 3½)',
 };
 // Fertige Spiele: id -> Startfunktion. Was hier fehlt, erscheint weder auf der Startseite noch im Regal.
 const SPIELE = {};
@@ -1280,6 +1281,298 @@ $('#btn-maus-laut').addEventListener('click', () => {
   msSchritt();
 });
 window.addEventListener('resize', () => { if ($('#maus').classList.contains('active') && !ms.auftrag && ms.maus) msAnordnen(); });
+
+// ---------- Zeig mir den Kreis (ab 3½): Formen benennen – Drei-Stufen-Lektion, dann „Auch das ist ein Dreieck“ ----------
+// 👀 „Das ist ein Dreieck.“ · 👂 „Wo ist das Dreieck?“ (erst zwei Karten, nach zwei sicheren Treffern drei) ·
+// 🗣️ „Was ist das? Sag es!“ (ohne Prüfung) · 🔍 Auch das: spitze, flache, gedrehte Dreiecke, kleine/große Kreise …
+// (sonst gilt nur das gerade, gleichseitige Dreieck als „echtes“). Das Quadrat steht nie auf der Spitze („Raute“).
+// Kein „falsch“: 1. Daneben = benennen, was getippt wurde; 2. = die Ecken der gesuchten Form leuchten und werden
+// gezählt („Eins, zwei, drei Ecken. Ein Dreieck!“; Kreis: „keine Ecken, er ist rund“); 3. = Lösung zeigen und weiter.
+// Zum Schluss in echt: „Such ein Dreieck bei dir zu Hause!“
+const FORMEN_STUFEN = [3, 4, 3, 3];
+const FORMEN_SYMBOL = ['👀', '👂', '🗣️', '🔍'];
+const FORMEN_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 8000, antwort: 5000, auchWeiter: 2200, pause: 900, daumen: 6000, auftragNochmal: 16000 };
+const FORMEN_FARBE = '#5b4636';
+// Formen in Ecken-Koordinaten (Kreis ohne Ecken); Bezug 100×100, gleiche Fläche wie bei „Passt rein“
+const FORMEN_GRUND = {
+  kreis: { kreis: [50, 50, 38] },
+  quadrat: { ecken: [[16.5, 16.5], [83.5, 16.5], [83.5, 83.5], [16.5, 83.5]] },
+  dreieck: { ecken: [[50, -2.9], [101, 85.4], [-1, 85.4]] },
+};
+// „Auch das“: Abwandlungen (Größe, Drehung, Gestalt) – Quadrat höchstens leicht gekippt
+const FORMEN_AUCH = {
+  kreis: [{ kreis: [50, 50, 22] }, { kreis: [50, 50, 46] }, { kreis: [50, 50, 32] }],
+  quadrat: [{ ecken: [[30, 30], [70, 30], [70, 70], [30, 70]] }, { ecken: [[6, 6], [94, 6], [94, 94], [6, 94]], drehung: 0 },
+    { ecken: [[18, 18], [82, 18], [82, 82], [18, 82]], drehung: 12 }],
+  dreieck: [{ ecken: [[50, 0], [78, 96], [22, 96]] }, { ecken: [[50, 40], [104, 86], [-4, 86]] },
+    { ecken: [[8, 8], [92, 92], [8, 92]] }, { ecken: [[50, 0], [100, 86], [0, 86]], drehung: 35 }],
+};
+const fo = { stufe: 0, schritt: 0, punkte: 0, auftraege: [], ziel: null, versuche: 0, unsicher: new Set(), serie: 0,
+  drei: false, auch: null, gesperrt: true, timer: null, nummer: 0, letzterTipp: -Infinity, fertig: false, welt: null };
+const foBausteine = spielBausteine('formen', fo);
+const { aktuell: foAktuell, ansage: foAnsage, zaehlen: foZaehlen } = foBausteine;
+SPIEL_STOPPEN.push(() => formenStoppen());
+
+function formenStoppen() {
+  foBausteine.stoppen();
+}
+
+function formBildSvg(d, farbe = FORMEN_FARBE) {
+  const dreh = d.drehung ? ` transform="rotate(${d.drehung} 50 50)"` : '';
+  if (d.kreis) {
+    const [cx, cy, r] = d.kreis;
+    return `<svg viewBox="-12 -12 124 124" aria-hidden="true"><circle cx="${cx}" cy="${cy}" r="${r}" fill="${farbe}"/></svg>`;
+  }
+  const punkte = d.ecken.map(([x, y]) => `${x},${y}`).join(' ');
+  return `<svg viewBox="-12 -12 124 124" aria-hidden="true"><g${dreh}><polygon points="${punkte}" fill="${farbe}" stroke="${farbe}" stroke-width="4" stroke-linejoin="round"/>`
+    + d.ecken.map(([x, y]) => `<circle class="ecke" cx="${x}" cy="${y}" r="9"/>`).join('') + '</g></svg>';
+}
+
+function foRundenZeichnen() {
+  let n = 0;
+  $('#formen-runden').innerHTML = FORMEN_STUFEN.map((anzahl) => `<span class="gruppe">${
+    Array.from({ length: anzahl }, () => `<span class="${n++ < fo.punkte ? 'voll' : ''}"></span>`).join('')}</span>`).join('');
+}
+
+function foKarte(form, d = FORMEN_GRUND[form]) {
+  const btn = document.createElement('button');
+  btn.className = 'mengen-karte form-karte kommt';
+  btn.dataset.form = form;
+  btn.innerHTML = formBildSvg(d);
+  btn.setAttribute('aria-label', form);
+  btn.addEventListener('click', () => foGetippt(form, btn));
+  return btn;
+}
+
+function foKarten(karten, art) {
+  const box = $('#formen-karten');
+  box.className = `mengen-karten ${art}`;
+  box.replaceChildren(...karten);
+  return karten;
+}
+
+const foZielKarte = () => $(`#formen-karten .form-karte[data-form="${fo.ziel}"]`);
+const foNamen = (form) => `formen-ist-${form}`;
+
+function foAuftraege() {
+  for (;;) {
+    const folge = mischen([...PASST_FORMEN, zufall(PASST_FORMEN)]);
+    if (folge.every((f, i) => f !== folge[i - 1])) return folge;
+  }
+}
+
+async function foStufe1() {
+  formenStoppen();
+  const nr = fo.nummer;
+  const form = PASST_FORMEN[fo.schritt];
+  const [karte] = foKarten([foKarte(form)], 'einzeln');
+  if (!(await foAnsage(nr, foNamen(form)))) return;
+  fo.gesperrt = false;
+  karte.classList.add('pulsiert');
+  fo.timer = setTimeout(() => foAktuell(nr) && !fo.gesperrt && foWeiter(nr), FORMEN_ZEIT.weiterOhneTipp);
+}
+
+async function foStufe2() {
+  formenStoppen();
+  const nr = fo.nummer;
+  fo.ziel = fo.auftraege[fo.schritt];
+  fo.versuche = 0;
+  const andere = mischen(PASST_FORMEN.filter((f) => f !== fo.ziel)).slice(0, fo.drei ? 2 : 1);
+  foKarten(mischen([fo.ziel, ...andere]).map((f) => foKarte(f)), fo.drei ? 'drei' : 'zwei');
+  await warten(400);
+  if (!foAktuell(nr)) return;
+  foFragen(nr);
+}
+
+async function foFragen(nr) {
+  if (!foAktuell(nr)) return;
+  fo.gesperrt = true;
+  if (!(await foAnsage(nr, `formen-wo-${fo.ziel}`))) return;
+  fo.gesperrt = false;
+  clearTimeout(fo.timer);
+  fo.timer = setTimeout(async () => {
+    if (!foAktuell(nr) || fo.gesperrt) return;
+    fo.gesperrt = true;
+    if (!(await foAnsage(nr, `formen-wo-${fo.ziel}`))) return;
+    fo.gesperrt = false;
+    fo.timer = setTimeout(() => foAktuell(nr) && foZielKarte() && foZielKarte().classList.add('pulsiert'), FORMEN_ZEIT.nochmalFragen);
+  }, FORMEN_ZEIT.nochmalFragen);
+}
+
+async function foStufe3() {
+  formenStoppen();
+  const nr = fo.nummer;
+  const form = fo.auftraege[fo.schritt];
+  const [karte] = foKarten([foKarte(form)], 'einzeln');
+  if (fo.unsicher.has(form)) {
+    if (!(await foAnsage(nr, foNamen(form)))) return;
+    fo.gesperrt = false;
+    fo.timer = setTimeout(() => foAktuell(nr) && !fo.gesperrt && foWeiter(nr), FORMEN_ZEIT.pause * 2);
+    return;
+  }
+  if (!(await foAnsage(nr, 'formen-sag-es'))) return;
+  fo.gesperrt = false;
+  fo.timer = setTimeout(() => foAktuell(nr) && !fo.gesperrt && foAntwort(nr, form, karte), FORMEN_ZEIT.antwort);
+}
+
+// „Auch das ist ein Dreieck.“ – eine Form in Abwandlungen, nacheinander (nur schauen und hören)
+async function foStufe4() {
+  formenStoppen();
+  const nr = fo.nummer;
+  const d = FORMEN_AUCH[fo.auch][fo.schritt % FORMEN_AUCH[fo.auch].length];
+  foKarten([foKarte(fo.auch, d)], 'einzeln');
+  if (!(await foAnsage(nr, `formen-auch-${fo.auch}`))) return;
+  fo.gesperrt = false;
+  fo.timer = setTimeout(() => foAktuell(nr) && !fo.gesperrt && foWeiter(nr), FORMEN_ZEIT.auchWeiter);
+}
+
+async function foAntwort(nr, form, karte) {
+  fo.gesperrt = true;
+  clearTimeout(fo.timer);
+  karte.classList.remove('pulsiert');
+  animieren(karte, 'huepft');
+  if (!(await foAnsage(nr, foNamen(form)))) return;
+  await warten(FORMEN_ZEIT.pause);
+  foWeiter(nr);
+}
+
+// Hilfe: die Ecken der gesuchten Form leuchten und werden gezählt (Kreis: „keine Ecken, er ist rund“)
+async function foEckenZeigen(nr, karte, form) {
+  const ecken = [...karte.querySelectorAll('.ecke')];
+  if (!ecken.length) { animieren(karte, 'huepft'); return foAnsage(nr, 'formen-ecken-kreis'); }
+  const ok = await foZaehlen(nr, `formen-ecken-${form}`, ecken);
+  ecken.forEach((e) => e.classList.remove('leuchtet'));
+  return ok;
+}
+
+async function foGetippt(form, btn) {
+  const jetzt = performance.now();
+  if (fo.gesperrt || fo.stufe >= 4 || jetzt - fo.letzterTipp < 400) return;
+  fo.letzterTipp = jetzt;
+  audio();
+  clearTimeout(fo.timer);
+  const nr = fo.nummer;
+  fo.gesperrt = true;
+  btn.classList.remove('pulsiert');
+  if (fo.stufe !== 1) { foAntwort(nr, form, btn); return; }
+  if (form === fo.ziel) {
+    btn.classList.add('richtig');
+    animieren(btn, 'huepft');
+    glockenspiel();
+    if (fo.versuche === 0 && ++fo.serie >= 2) fo.drei = true;
+    await warten(400);
+    if (!(await foAnsage(nr, foNamen(form)))) return;
+    await warten(FORMEN_ZEIT.pause);
+    foWeiter(nr);
+    return;
+  }
+  fo.versuche++;
+  fo.serie = 0;
+  fo.drei = false;
+  fo.unsicher.add(fo.ziel);
+  const ziel = foZielKarte();
+  if (fo.versuche === 1) {
+    animieren(btn, 'wackelt');
+    if (!(await foAnsage(nr, foNamen(form)))) return;
+    await warten(400);
+    foFragen(nr);
+  } else if (fo.versuche === 2) {
+    document.querySelectorAll('#formen-karten .form-karte').forEach((k) => k.classList.toggle('blass', k !== ziel));
+    animieren(btn, 'wackelt');
+    if (!(await foEckenZeigen(nr, ziel, fo.ziel))) return;
+    document.querySelectorAll('#formen-karten .form-karte').forEach((k) => k.classList.remove('blass'));
+    await warten(400);
+    foFragen(nr);
+  } else {
+    ziel.classList.add('richtig');
+    animieren(ziel, 'huepft');
+    if (!(await foAnsage(nr, foNamen(fo.ziel)))) return;
+    await warten(FORMEN_ZEIT.pause);
+    foWeiter(nr);
+  }
+}
+
+function foWeiter(nr) {
+  if (!foAktuell(nr)) return;
+  fo.punkte++;
+  fo.schritt++;
+  foRundenZeichnen();
+  if (fo.schritt < FORMEN_STUFEN[fo.stufe]) { foSchritt(); return; }
+  foNaechsteStufe();
+}
+
+function foSchritt() {
+  $('#formen-symbol').textContent = FORMEN_SYMBOL[fo.stufe] || '';
+  [foStufe1, foStufe2, foStufe3, foStufe4, formenAuftrag][fo.stufe]();
+}
+
+async function foNaechsteStufe() {
+  formenStoppen();
+  const nr = fo.nummer;
+  glockenspiel();
+  fo.stufe++;
+  fo.schritt = 0;
+  if (fo.stufe === 1) fo.auftraege = foAuftraege();
+  if (fo.stufe === 2) fo.auftraege = mischen(PASST_FORMEN);
+  if (fo.stufe === 3) fo.auch = zufall(['dreieck', 'dreieck', 'quadrat', 'kreis']);
+  await warten(700);
+  if (!foAktuell(nr)) return;
+  foSchritt();
+  animieren($('#formen-symbol'), 'huepft');
+}
+
+// ----- Echte Welt: „Such ein Dreieck bei dir zu Hause!“ -----
+
+function formenAuftrag() {
+  formenStoppen();
+  const nr = fo.nummer;
+  fo.fertig = false;
+  $('#btn-formen-daumen').hidden = true;
+  fo.welt = zufall(PASST_FORMEN);
+  const box = $('#formen-karten');
+  box.className = 'mengen-karten';
+  inEcht({ z: fo, nr, aktuell: foAktuell, ansage: foAnsage, buehne: box, knopf: $('#btn-formen-daumen'),
+    karteHtml: `${formBildSvg(FORMEN_GRUND[fo.welt])}<span class="karte-bild">🔎</span>`, sagen: (nr2) => foAnsage(nr2, `formen-such-${fo.welt}`), zeit: FORMEN_ZEIT });
+}
+
+async function formenAuftragErledigt(nr) {
+  const karte = inEchtBestaetigt(fo, $('#btn-formen-daumen'));
+  if (!karte) return;
+  animieren(karte, 'huepft');
+  glockenspiel();
+  await warten(400);
+  if (!(await foAnsage(nr, `formen-gefunden-${fo.welt}`))) return;
+  spielEnde('formen', formenNeu);
+}
+
+$('#btn-formen-daumen').addEventListener('click', () => { audio(); if (fo.inEcht) formenAuftragErledigt(fo.nummer); });
+
+function formenNeu() {
+  formenStoppen();
+  Object.assign(fo, { stufe: 0, schritt: 0, punkte: 0, auftraege: [], unsicher: new Set(), serie: 0, drei: false, fertig: false, inEcht: false });
+  $('#btn-formen-daumen').hidden = true;
+  foRundenZeichnen();
+  foSchritt();
+}
+
+function formenStarten() {
+  spielEndeWeg('formen');
+  zeigen('formen');
+  formenNeu();
+}
+SPIELE.formen = formenStarten;
+$('#home .spiel-btn[data-spiel="formen"]').innerHTML = '<span class="kachel-formen">'
+  + ['kreis', 'dreieck', 'quadrat'].map((f) => formBildSvg(FORMEN_GRUND[f])).join('') + '</span>';
+
+$('#btn-formen-home').addEventListener('click', () => { formenStoppen(); wiedergabeStoppen(); zurStartseite(); });
+$('#btn-formen-laut').addEventListener('click', () => {
+  const ende = $('#formen .spiel-ende');
+  if ((ende && !ende.hidden) || fo.fertig || fo.gesperrt) return;
+  audio();
+  if (fo.inEcht) { inEchtNochmal(fo); return; }
+  if (fo.stufe === 1) { clearTimeout(fo.timer); fo.nummer++; foFragen(fo.nummer); return; }
+  foSchritt();
+});
 
 // ---------- Elternbereich (2 Sekunden gedrückt halten) ----------
 

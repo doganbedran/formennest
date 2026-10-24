@@ -24,7 +24,12 @@ Spiele kommen eins nach dem anderen. Konzept: [`docs/konzept.md`](docs/konzept.m
   es!“. Woanders hingesetzt: „Jetzt ist sie in der Kiste.“, dann leuchtet der Platz, dann läuft sie selbst hin. Zum
   Schluss: „Setz dein Kuscheltier unter den Tisch!“
 
-Geplant: „Zeig mir den Kreis“ (Formen benennen), „Klatsch – Stampf“ (Klatschmuster), „Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
+- ⚫ **Zeig mir den Kreis** (ab 3½) – Kreis, Quadrat und Dreieck benennen: 👀 „Das ist ein Dreieck.“ → 👂 „Wo ist das
+  Dreieck?“ (erst 2, dann 3 Karten; daneben: benennen, dann leuchten die Ecken und werden gezählt, dann Lösung) →
+  🗣️ „Was ist das? Sag es!“ → 🔍 „Auch das ist ein Dreieck.“ (spitz, flach, gedreht; Quadrat nie auf der Spitze).
+  Zum Schluss: „Such ein Dreieck bei dir zu Hause!“
+
+Geplant: „Klatsch – Stampf“ (Klatschmuster), „Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
 
 ## Daten neben Wortnest und Zahlennest
 Alle drei Apps liegen unter `doganbedran.github.io` und teilen sich damit den Browser-Speicher. Formennest nutzt darum

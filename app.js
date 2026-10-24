@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 4;
+const APP_VERSION = 5;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -152,7 +152,7 @@ function kindBildHtml(k) {
 
 // Reihenfolge = Reihenfolge im Konzept (so werden sie nach und nach gebaut und freigeschaltet).
 // Montessori: ein Material kommt erst ins Regal, wenn es gezeigt wurde. Gespeichert wird, was AUSGEBLENDET ist.
-const ALLE_SPIELE = ['passt', 'maus', 'formen'];
+const ALLE_SPIELE = ['passt', 'maus', 'formen', 'klatsch'];
 const START_REGAL = ['passt'];
 const START_AUS = ALLE_SPIELE.filter((id) => !START_REGAL.includes(id));
 // Für Eltern: was jedes Spiel tut (die Kacheln zeigen den Kindern nur ein Bild)
@@ -160,6 +160,7 @@ const SPIEL_INFO = {
   passt: 'Formen in die passende Mulde schieben – Kreis, Quadrat, Dreieck (ab 3)',
   maus: 'Lagewörter auf, in, unter: die Maus an die Kiste setzen (ab 3)',
   formen: 'Kreis, Quadrat und Dreieck benennen und wiedererkennen, auch gedreht (ab 3½)',
+  klatsch: 'Ein Muster aus Klatschen und Stampfen fortsetzen – kein Takt, nur die Reihenfolge (ab 3½)',
 };
 // Fertige Spiele: id -> Startfunktion. Was hier fehlt, erscheint weder auf der Startseite noch im Regal.
 const SPIELE = {};
@@ -1572,6 +1573,216 @@ $('#btn-formen-laut').addEventListener('click', () => {
   if (fo.inEcht) { inEchtNochmal(fo); return; }
   if (fo.stufe === 1) { clearTimeout(fo.timer); fo.nummer++; foFragen(fo.nummer); return; }
   foSchritt();
+});
+
+// ---------- Klatsch – Stampf (ab 3½): ein Muster aus Klatschen und Stampfen hören, sehen und fortsetzen ----------
+// Eine Bildreihe 👏 🦶 👏 🦶 ⬜: die App spricht sie in einem Zug („Klatsch, stampf, klatsch, stampf …“), jedes Bild leuchtet
+// mit seinem Klang. „Was kommt jetzt?“ – das Kind tippt 👏 oder 🦶. Passt es, spricht die App die ganze Reihe; sonst
+// erscheint das Bild blass, wackelt und die Reihe kommt nochmal; 2. Mal: der passende Knopf leuchtet; 3. Mal: die App
+// setzt es selbst. Kein Takt, kein Tempo – es zählt nur die Reihenfolge. Runden: AB, BA, AAB, ABB.
+// Zum Schluss in echt: das Kind klatscht und stampft selbst, die App macht nach 👍 mit.
+const KLATSCH_RUNDEN = [
+  { reihe: ['k', 's', 'k', 's'], fehlt: 'k' },
+  { reihe: ['s', 'k', 's', 'k'], fehlt: 's' },
+  { reihe: ['k', 'k', 's', 'k', 'k'], fehlt: 's' },
+  { reihe: ['k', 's', 's', 'k', 's'], fehlt: 's' },
+];
+const KLATSCH_BILD = { k: '👏', s: '🦶' };
+const KLATSCH_ZEIT = { nochmal: 9000, pause: 700, daumen: 6000, auftragNochmal: 16000 };
+const kl = { runde: 0, versuche: 0, gesperrt: true, timer: null, nummer: 0, letzterTipp: -Infinity, fertig: false, inEcht: false, auftrag: false };
+const klBausteine = spielBausteine('klatsch', kl);
+const { aktuell: klAktuell, ansage: klAnsage, zaehlen: klZaehlen } = klBausteine;
+SPIEL_STOPPEN.push(() => klatschStoppen());
+const klRunde = () => KLATSCH_RUNDEN[kl.runde];
+
+function klatschStoppen() {
+  klBausteine.stoppen();
+}
+
+function klRundenZeichnen() {
+  $('#klatsch-runden').innerHTML = `<span class="gruppe">${
+    KLATSCH_RUNDEN.map((_, i) => `<span class="${i < kl.runde ? 'voll' : ''}"></span>`).join('')}</span>`;
+}
+
+// Klänge: Klatschen = kurzes Rauschen, Stampfen = tiefer, dumpfer Schlag
+function klKlang(art) {
+  const c = audio();
+  if (!c) return;
+  const t = c.currentTime;
+  if (art === 'k') {
+    const puffer = c.createBuffer(1, Math.round(c.sampleRate * 0.08), c.sampleRate);
+    const d = puffer.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (d.length / 6));
+    const q = c.createBufferSource(), filter = c.createBiquadFilter(), gain = c.createGain();
+    q.buffer = puffer;
+    filter.type = 'bandpass';
+    filter.frequency.value = 1800;
+    gain.gain.value = 0.5;
+    q.connect(filter).connect(gain).connect(c.destination);
+    q.start(t);
+    return;
+  }
+  const osc = c.createOscillator(), gain = c.createGain();
+  osc.frequency.setValueAtTime(120, t);
+  osc.frequency.exponentialRampToValueAtTime(45, t + 0.18);
+  gain.gain.setValueAtTime(0.5, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+  osc.connect(gain).connect(c.destination);
+  osc.start(t);
+  osc.stop(t + 0.24);
+}
+
+function klFeldAufbauen() {
+  const feld = $('#klatsch-feld');
+  feld.closest('.screen').classList.remove('ruhig');
+  const { reihe } = klRunde();
+  feld.innerHTML = `<div class="klatsch-reihe">${reihe.map((a) => `<span class="klatsch-bild" data-art="${a}">${KLATSCH_BILD[a]}</span>`).join('')}`
+    + '<span class="klatsch-bild luecke"></span></div>'
+    + '<div class="klatsch-knoepfe"><button class="klatsch-knopf" data-art="k" aria-label="Klatschen">👏</button>'
+    + '<button class="klatsch-knopf" data-art="s" aria-label="Stampfen">🦶</button></div>';
+  feld.querySelectorAll('.klatsch-knopf').forEach((b) => b.addEventListener('click', () => klGetippt(b.dataset.art, b)));
+}
+
+const klBilder = () => [...document.querySelectorAll('#klatsch-feld .klatsch-bild:not(.luecke)')];
+
+// Die Reihe in einem Zug: jedes Bild leuchtet mit seinem Klang (Aufnahme gleichmäßig verteilt)
+async function klReiheVorspielen(nr, name, bilder) {
+  bilder.forEach((b) => b.classList.remove('leuchtet'));
+  const ok = await klZaehlen(nr, name, bilder, (i) => klKlang(bilder[i].dataset.art));
+  bilder.forEach((b) => b.classList.remove('leuchtet'));
+  return ok;
+}
+
+async function klatschNeueRunde() {
+  klatschStoppen();
+  const nr = kl.nummer;
+  kl.versuche = 0;
+  klFeldAufbauen();
+  await warten(400);
+  if (!klAktuell(nr)) return;
+  klFragen(nr);
+}
+
+async function klFragen(nr) {
+  if (!klAktuell(nr)) return;
+  kl.gesperrt = true;
+  document.querySelectorAll('#klatsch-feld .klatsch-knopf').forEach((b) => b.classList.remove('blass'));
+  // „Klatsch, stampf, klatsch, stampf. Und dann?“ – eine Aufnahme, jedes Bild leuchtet mit seinem Klang
+  if (!(await klReiheVorspielen(nr, `klatsch-reihe-${kl.runde + 1}`, klBilder()))) return;
+  kl.gesperrt = false;
+  clearTimeout(kl.timer);
+  kl.timer = setTimeout(() => klAktuell(nr) && !kl.gesperrt && klFragen(nr), KLATSCH_ZEIT.nochmal);
+}
+
+async function klGetippt(art, btn) {
+  const jetzt = performance.now();
+  if (kl.gesperrt || kl.auftrag || jetzt - kl.letzterTipp < 400) return;   // Doppeltipps zählen nicht
+  kl.letzterTipp = jetzt;
+  audio();
+  clearTimeout(kl.timer);
+  const nr = kl.nummer;
+  kl.gesperrt = true;
+  klKlang(art);
+  animieren(btn, 'huepft');
+  const luecke = $('#klatsch-feld .luecke');
+  luecke.textContent = KLATSCH_BILD[art];
+  luecke.dataset.art = art;
+  if (art === klRunde().fehlt) {
+    luecke.classList.add('gefuellt');
+    luecke.classList.remove('blass');
+    await warten(450);
+    if (!klAktuell(nr)) return;
+    if (!(await klRichtig(nr))) return;
+    return;
+  }
+  kl.versuche++;
+  luecke.classList.add('blass');
+  animieren(luecke, 'wackelt');
+  await warten(700);
+  if (!klAktuell(nr)) return;
+  luecke.textContent = '';
+  luecke.classList.remove('blass');
+  const richtigKnopf = $(`#klatsch-feld .klatsch-knopf[data-art="${klRunde().fehlt}"]`);
+  if (kl.versuche >= 3) {
+    luecke.textContent = KLATSCH_BILD[klRunde().fehlt];
+    luecke.dataset.art = klRunde().fehlt;
+    luecke.classList.add('gefuellt');
+    klKlang(klRunde().fehlt);
+    await warten(450);
+    klRichtig(nr);
+    return;
+  }
+  if (kl.versuche === 2) richtigKnopf.classList.add('hinweis');
+  klFragen(nr);
+}
+
+// Passt: die ganze Reihe einmal mit Klang, dann die nächste Runde
+async function klRichtig(nr) {
+  document.querySelectorAll('#klatsch-feld .klatsch-knopf').forEach((b) => b.classList.remove('hinweis'));
+  const alle = [...document.querySelectorAll('#klatsch-feld .klatsch-bild')];
+  if (!(await klReiheVorspielen(nr, `klatsch-voll-${kl.runde + 1}`, alle))) return false;
+  glockenspiel();
+  alle.forEach((b) => b.classList.add('leuchtet'));
+  await warten(KLATSCH_ZEIT.pause);
+  if (!klAktuell(nr)) return false;
+  kl.runde++;
+  klRundenZeichnen();
+  if (kl.runde < KLATSCH_RUNDEN.length) klatschNeueRunde(); else klatschAuftrag();
+  return true;
+}
+
+// ----- Echte Welt: „Jetzt du: klatsch, stampf, klatsch, stampf!“ – nach 👍 macht die App mit -----
+
+function klatschAuftrag() {
+  klatschStoppen();
+  const nr = kl.nummer;
+  kl.auftrag = true;
+  kl.fertig = false;
+  $('#btn-klatsch-daumen').hidden = true;
+  inEcht({ z: kl, nr, aktuell: klAktuell, ansage: klAnsage, buehne: $('#klatsch-feld'), knopf: $('#btn-klatsch-daumen'),
+    karteHtml: ['k', 's', 'k', 's', 'k'].map((a) => `<span class="karte-bild klatsch-karte-bild" data-art="${a}">${KLATSCH_BILD[a]}</span>`).join(''),
+    sagen: (nr2) => klAnsage(nr2, 'klatsch-welt'), zeit: KLATSCH_ZEIT });
+}
+
+async function klatschAuftragErledigt(nr) {
+  const karte = inEchtBestaetigt(kl, $('#btn-klatsch-daumen'));
+  if (!karte) return;
+  if (!(await klAnsage(nr, 'klatsch-welt-mit'))) return;
+  const bilder = [...karte.querySelectorAll('.klatsch-karte-bild')];
+  if (!(await klZaehlen(nr, 'klatsch-voll-1', bilder, (i) => klKlang(bilder[i].dataset.art)))) return;
+  glockenspiel();
+  await warten(400);
+  if (!(await klAnsage(nr, 'klatsch-ende'))) return;
+  spielEnde('klatsch', klatschNeu);
+}
+
+$('#btn-klatsch-daumen').addEventListener('click', () => { audio(); if (kl.inEcht) klatschAuftragErledigt(kl.nummer); });
+
+function klatschNeu() {
+  klatschStoppen();
+  Object.assign(kl, { runde: 0, fertig: false, inEcht: false, auftrag: false });
+  $('#btn-klatsch-daumen').hidden = true;
+  klRundenZeichnen();
+  klatschNeueRunde();
+}
+
+function klatschStarten() {
+  spielEndeWeg('klatsch');
+  zeigen('klatsch');
+  klatschNeu();
+}
+SPIELE.klatsch = klatschStarten;
+$('#home .spiel-btn[data-spiel="klatsch"]').innerHTML = '<span class="kachel-klatsch">👏<span>🦶</span></span>';
+
+$('#btn-klatsch-home').addEventListener('click', () => { klatschStoppen(); wiedergabeStoppen(); zurStartseite(); });
+$('#btn-klatsch-laut').addEventListener('click', () => {
+  const ende = $('#klatsch .spiel-ende');
+  if ((ende && !ende.hidden) || kl.fertig || kl.gesperrt) return;
+  audio();
+  if (kl.inEcht) { inEchtNochmal(kl); return; }
+  clearTimeout(kl.timer);
+  kl.nummer++;
+  klFragen(kl.nummer);
 });
 
 // ---------- Elternbereich (2 Sekunden gedrückt halten) ----------

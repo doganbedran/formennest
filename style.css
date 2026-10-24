@@ -395,3 +395,24 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 .form-karte .ecke.leuchtet { fill: #f5c518; stroke: #b07800; stroke-width: 3; }
 .kachel-formen { display: flex; gap: 6%; width: 82%; align-items: center; }
 .kachel-formen svg { width: 30%; height: auto; }
+
+/* ---------- Klatsch – Stampf: Bildreihe mit Lücke, zwei große Knöpfe ---------- */
+#klatsch, .klatsch-feld { touch-action: manipulation; }
+.klatsch-feld { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 0 12px 96px; }
+@media (orientation: landscape) { .klatsch-feld { padding-bottom: 16px; } }
+.klatsch-reihe { display: flex; gap: 8px; flex-wrap: nowrap; justify-content: center; }
+.klatsch-bild { width: min(64px, 13vw, 14dvh); aspect-ratio: 1; display: grid; place-items: center; font-size: min(2.6rem, 9vw, 10dvh);
+  background: var(--papier); border-radius: 16px; box-shadow: var(--schatten); transition: transform 0.2s, box-shadow 0.2s; }
+.klatsch-bild.leuchtet { box-shadow: 0 0 0 4px #f5c518; transform: scale(1.08); }
+.klatsch-bild.luecke { background: transparent; box-shadow: none; border: 3px dashed #c7b08a; }
+.klatsch-bild.luecke.gefuellt { background: var(--papier); border-style: solid; border-color: #f5c518; }
+.klatsch-bild.luecke.blass { opacity: 0.4; }
+.klatsch-bild.wackelt { animation: wackeln 0.5s ease; }
+.klatsch-knoepfe { display: flex; gap: 32px; }
+.klatsch-knopf { width: min(130px, 32vw, 24dvh); aspect-ratio: 1; border: none; border-radius: 32px; background: var(--papier);
+  box-shadow: var(--schatten); font-size: min(4rem, 13vw, 14dvh); }
+.klatsch-knopf.huepft { animation: huepfen 0.5s ease; }
+.klatsch-knopf.hinweis { box-shadow: 0 0 0 6px #f5c518; animation: warten-puls 1.6s ease-in-out infinite; }
+.kachel-klatsch { font-size: 0.8em; line-height: 1; display: flex; gap: 4%; }
+.in-echt-karte .klatsch-karte-bild.leuchtet { box-shadow: 0 0 0 4px #f5c518; }
+@media (prefers-reduced-motion: reduce) { .klatsch-knopf.hinweis { animation: none; } }

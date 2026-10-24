@@ -55,4 +55,16 @@ const ANSAGEN = {
   'formen-ecken-dreieck': ['Eins, zwei, drei Ecken. Ein Dreieck!', 'Zeig mir den Kreis'],
   'formen-ecken-quadrat': ['Eins, zwei, drei, vier Ecken. Ein Quadrat!', 'Zeig mir den Kreis'],
   'formen-ecken-kreis': ['Ein Kreis hat keine Ecken. Er ist rund!', 'Zeig mir den Kreis'],
+  // Klatsch – Stampf (je Wort ein Bild; der letzte Satz ist ein eigener Schritt beim Leuchten)
+  'klatsch-reihe-1': ['Klatsch, stampf, klatsch, stampf. Und dann?', 'Klatsch – Stampf'],
+  'klatsch-voll-1': ['Klatsch, stampf, klatsch, stampf, klatsch. Ein Muster!', 'Klatsch – Stampf'],
+  'klatsch-reihe-2': ['Stampf, klatsch, stampf, klatsch. Und dann?', 'Klatsch – Stampf'],
+  'klatsch-voll-2': ['Stampf, klatsch, stampf, klatsch, stampf. Ein Muster!', 'Klatsch – Stampf'],
+  'klatsch-reihe-3': ['Klatsch, klatsch, stampf, klatsch, klatsch. Und dann?', 'Klatsch – Stampf'],
+  'klatsch-voll-3': ['Klatsch, klatsch, stampf, klatsch, klatsch, stampf. Ein Muster!', 'Klatsch – Stampf'],
+  'klatsch-reihe-4': ['Klatsch, stampf, stampf, klatsch, stampf. Und dann?', 'Klatsch – Stampf'],
+  'klatsch-voll-4': ['Klatsch, stampf, stampf, klatsch, stampf, stampf. Ein Muster!', 'Klatsch – Stampf'],
+  'klatsch-welt': ['Jetzt du! Klatsch und stampf: klatsch, stampf, klatsch, stampf, klatsch!', 'Klatsch – Stampf'],
+  'klatsch-welt-mit': ['Wir machen es zusammen!', 'Klatsch – Stampf'],
+  'klatsch-ende': ['Du hast ein Muster geklatscht und gestampft!', 'Klatsch – Stampf'],
 };

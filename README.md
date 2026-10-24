@@ -29,7 +29,12 @@ Spiele kommen eins nach dem anderen. Konzept: [`docs/konzept.md`](docs/konzept.m
   🗣️ „Was ist das? Sag es!“ → 🔍 „Auch das ist ein Dreieck.“ (spitz, flach, gedreht; Quadrat nie auf der Spitze).
   Zum Schluss: „Such ein Dreieck bei dir zu Hause!“
 
-Geplant: „Klatsch – Stampf“ (Klatschmuster), „Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
+- 👏 **Klatsch – Stampf** (ab 3½) – ein Hör- und Bewegungsmuster fortsetzen: Die App spricht die Bildreihe 👏 🦶 👏 🦶
+  ⬜ in einem Zug (jedes Bild leuchtet mit seinem Klang), das Kind tippt 👏 oder 🦶. Passt es nicht, kommt die Reihe
+  nochmal, dann leuchtet der passende Knopf, dann setzt die App ihn ein. Kein Takt, kein Tempo. Vier Runden: AB, BA,
+  AAB, ABB. Zum Schluss klatscht und stampft das Kind selbst.
+
+Geplant: „Muster legen“. Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
 
 ## Daten neben Wortnest und Zahlennest
 Alle drei Apps liegen unter `doganbedran.github.io` und teilen sich damit den Browser-Speicher. Formennest nutzt darum

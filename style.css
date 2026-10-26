@@ -297,6 +297,7 @@ body.laedt #home .spiele-raster { visibility: hidden; }
   border-radius: 14px; background: transparent; }
 .in-echt-karte svg { height: min(76px, 11dvh); width: auto; display: block; }
 .in-echt-karte .karte-bild { font-size: min(3.2rem, 9dvh); line-height: 1; border-radius: 12px; padding: 2px 6px; }
+.in-echt-karte .karte-bild.kommt { animation: aufploppen 0.4s ease-out; }
 .in-echt-karte .karte-bild.leuchtet { box-shadow: 0 0 0 4px #f5c518; }
 .in-echt-karte .karte-punkt { fill: none; stroke: #4a3f35; stroke-width: 5; }
 .in-echt-karte .karte-punkt.leuchtet { fill: #f5c518; stroke: #b07800; }
@@ -417,6 +418,7 @@ body.laedt #home .spiele-raster { visibility: hidden; }
   box-shadow: var(--schatten); font-size: min(4rem, 13vw, 14dvh); }
 .klatsch-knopf.huepft { animation: huepfen 0.5s ease; }
 .klatsch-knopf.hinweis { box-shadow: 0 0 0 6px #f5c518; animation: warten-puls 1.6s ease-in-out infinite; }
+.klatsch-knopf.hinweis.huepft { animation: huepfen 0.5s ease; }
 .kachel-klatsch { font-size: 0.8em; line-height: 1; display: flex; gap: 4%; }
 .in-echt-karte .klatsch-karte-bild.leuchtet { box-shadow: 0 0 0 4px #f5c518; }
 @media (prefers-reduced-motion: reduce) { .klatsch-knopf.hinweis { animation: none; } }

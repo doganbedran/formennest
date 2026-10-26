@@ -16,7 +16,7 @@
 
   const gesagt = [];
   folgeAbspielen = async (folge) => { gesagt.push(...folge.map((q) => q.url.replace('audio/ansage-', '').replace('.wav', ''))); await warte(5); };
-  Object.assign(MAUS_ZEIT, { weiterOhneTipp: 150, nochmalFragen: 8000, antwort: 150, pause: 20, daumen: 100, auftragNochmal: 3000 });
+  Object.assign(MAUS_ZEIT, { weiterOhneTipp: 150, nochmalFragen: 8000, antwort: 150, pause: 20, vormachen: 30, daumen: 100, auftragNochmal: 3000 });
   const zuletzt = () => gesagt[gesagt.length - 1];
   const mitte = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
   const ev = (el, typ, p) => el.dispatchEvent(new PointerEvent(typ, { bubbles: true, pointerId: 1, isPrimary: true, clientX: p.x, clientY: p.y }));
@@ -82,8 +82,8 @@
   await bis(() => ms.stufe === 2);
   await bis(() => gesagt.includes('maus-sag-es'));
   await bis(() => ms.inEcht && !$('#btn-maus-daumen').hidden, 8000);
-  const welt = gesagt.slice(gesagt.lastIndexOf('jetzt-in-echt'));
-  pruefe(/^jetzt-in-echt,maus-welt-(auf|unter)$/.test(welt.join()), `Auftrag: ${welt}`);
+  const welt = gesagt.slice(gesagt.lastIndexOf('jetzt-in-echt') - 1);
+  pruefe(welt.join() === `maus-ist-${ms.welt},jetzt-in-echt,maus-welt-${ms.welt}`, `Auftrag (mit Vormachen): ${welt}`);
   $('#btn-maus-daumen').click();
   await bis(() => $('#maus .spiel-ende') && !$('#maus .spiel-ende').hidden);
   pruefe(zuletzt() === `maus-welt-fertig-${ms.welt}`, `Schluss: ${zuletzt()}`);

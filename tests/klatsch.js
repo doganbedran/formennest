@@ -55,6 +55,7 @@
   // 4. Richtig (👏): ganze Reihe, nächste Runde
   await tipp('k');
   await bis(() => kl.runde === 1 && !kl.gesperrt);
+  pruefe(gesagt[gesagt.indexOf('klatsch-voll-1') - 1] === 'klatsch-mach-mit', '„Mach mit!“ fehlt vor der ganzen Reihe');
   pruefe(gesagt.includes('klatsch-voll-1') && zuletzt() === 'klatsch-reihe-2' && !gesagt.some((g) => /falsch|nein/.test(g)), `Runde 2: ${gesagt.slice(-3)}`);
 
   // 5. Runde 2 richtig; Runde 3: dreimal falsch → App setzt ein

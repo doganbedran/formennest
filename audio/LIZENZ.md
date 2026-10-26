@@ -1,8 +1,8 @@
 # Lizenz der Aufnahmen
 
 **Sprecher-Aufnahmen** – alle Dateien, die in `sprecher.json` stehen (sobald es sie gibt), eingesprochen vom
-Sprecher der App „Zahlennest“: [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de) –
-Weitergabe mit Namensnennung („Zahlennest, https://github.com/doganbedran/zahlennest“) erlaubt, **nicht kommerziell**
+Sprecher der App „Formennest“: [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/deed.de) –
+Weitergabe mit Namensnennung („Formennest, https://github.com/doganbedran/formennest“) erlaubt, **nicht kommerziell**
 und **nicht verändert**. Ausdrücklich nicht erlaubt ist damit auch, die Aufnahmen zu schneiden, zu mischen oder daraus
 eine Stimme nachzubilden.
 

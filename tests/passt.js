@@ -16,7 +16,7 @@
 
   const gesagt = [];
   folgeAbspielen = async (folge) => { gesagt.push(...folge.map((q) => q.url.replace('audio/ansage-', '').replace('.wav', ''))); await warte(5); };
-  Object.assign(PASST_ZEIT, { rundenPause: 30, vormachen: 30, daumen: 100, auftragNochmal: 3000 });
+  Object.assign(PASST_ZEIT, { rundenPause: 30, vormachen: 30, rundherum: 30, daumen: 100, auftragNochmal: 3000 });
   const zuletzt = () => gesagt[gesagt.length - 1];
   const mitte = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
   const ev = (el, typ, p) => el.dispatchEvent(new PointerEvent(typ, { bubbles: true, pointerId: 1, isPrimary: true, clientX: p.x, clientY: p.y }));

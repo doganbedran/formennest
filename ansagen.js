@@ -64,6 +64,7 @@ const ANSAGEN = {
   'klatsch-voll-3': ['Klatsch, klatsch, stampf, klatsch, klatsch, stampf. Ein Muster!', 'Klatsch – Stampf'],
   'klatsch-reihe-4': ['Klatsch, stampf, stampf, klatsch, stampf. Und dann?', 'Klatsch – Stampf'],
   'klatsch-voll-4': ['Klatsch, stampf, stampf, klatsch, stampf, stampf. Ein Muster!', 'Klatsch – Stampf'],
+  'klatsch-mach-mit': ['Mach mit!', 'Klatsch – Stampf'],
   'klatsch-welt': ['Jetzt du! Klatsch und stampf: klatsch, stampf, klatsch, stampf, klatsch!', 'Klatsch – Stampf'],
   'klatsch-welt-mit': ['Wir machen es zusammen!', 'Klatsch – Stampf'],
   'klatsch-ende': ['Du hast ein Muster geklatscht und gestampft!', 'Klatsch – Stampf'],

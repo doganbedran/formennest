@@ -17,7 +17,7 @@
   const gesagt = [];
   folgeAbspielen = async (folge) => { gesagt.push(...folge.map((q) => q.url.replace('audio/ansage-', '').replace('.wav', ''))); await warte(5); };
   zaehlenMitLeuchten = async (name, el) => { gesagt.push(name); el.forEach((e) => e.classList.add('leuchtet')); await warte(5); };
-  Object.assign(FORMEN_ZEIT, { weiterOhneTipp: 150, nochmalFragen: 6000, antwort: 150, auchWeiter: 100, pause: 20, daumen: 100, auftragNochmal: 3000 });
+  Object.assign(FORMEN_ZEIT, { weiterOhneTipp: 150, nochmalFragen: 6000, antwort: 150, auchWeiter: 100, pause: 20, vormachen: 30, daumen: 100, auftragNochmal: 3000 });
   const zuletzt = () => gesagt[gesagt.length - 1];
   const karte = (f) => $(`#formen-karten .form-karte[data-form="${f}"]`);
   const bereit = (stufe) => bis(() => fo.stufe === stufe && !fo.gesperrt);
@@ -83,6 +83,8 @@
   await bis(() => fo.inEcht && !$('#btn-formen-daumen').hidden, 8000);
   pruefe(gesagt.filter((g) => g.startsWith('formen-auch-')).length === 3, 'Stufe 4 „Auch das“ fehlt');
   pruefe(zuletzt() === `formen-such-${fo.welt}` && gesagt.includes('formen-sag-es'), `Auftrag: ${gesagt.slice(-3)}`);
+  pruefe(gesagt.slice(-3).join() === `formen-ist-${fo.welt},jetzt-in-echt,formen-such-${fo.welt}`, `Vormachen fehlt: ${gesagt.slice(-3)}`);
+  pruefe(!fo.unsicher.has(fo.welt) && (fo.welt === 'kreis' || fo.unsicher.has('kreis')), `Gesucht wird ${fo.welt}, unsicher: ${[...fo.unsicher]}`);
   $('#btn-formen-daumen').click();
   await bis(() => $('#formen .spiel-ende') && !$('#formen .spiel-ende').hidden);
   pruefe(zuletzt() === `formen-gefunden-${fo.welt}`, `Schluss: ${zuletzt()}`);

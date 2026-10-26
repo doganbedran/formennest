@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 13;
+const APP_VERSION = 14;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -122,7 +122,7 @@ function medienBereich(profil) {
 function htmlText(text) {
   const d = document.createElement('div');
   d.textContent = text;
-  return d.innerHTML;
+  return d.innerHTML.replace(/"/g, '&quot;');   // auch in Attributen (alt="…") sicher
 }
 
 // ---------- Kinder: jedes Kind hat eigene Einstellungen (keine Zähler, keine Sterne) ----------
@@ -694,7 +694,7 @@ async function handZeigen(feld, el, [x1, y1], [x2, y2], setzen, aktuell) {
 // liegen jedes Mal anders, in Runde 3 leicht gedreht (Quadrat nur wenig – auf der Spitze wäre es eine „Raute“).
 // Zum Schluss in echt: „Such etwas Rundes bei dir zu Hause!“ – „Fahr mit dem Finger rundherum!“
 const PASST_RUNDEN = 3;
-const PASST_ZEIT = { hilfe: 12000, rundenPause: 900, vormachen: 2600, daumen: 6000, auftragNochmal: 16000 };
+const PASST_ZEIT = { hilfe: 12000, rundenPause: 900, vormachen: 2600, rundherum: 5000, daumen: 6000, auftragNochmal: 16000 };
 const PASST_FORMEN = ['kreis', 'quadrat', 'dreieck'];
 // Drehung der Mulden in Runde 3 (Grad)
 const PASST_DREHUNG = { kreis: 0, quadrat: 12, dreieck: 28 };
@@ -962,7 +962,7 @@ async function passtAuftragErledigt(nr) {
   const karte = inEchtBestaetigt(pa, $('#btn-passt-daumen'));
   if (!karte) return;
   if (!(await paAnsage(nr, 'passt-welt-zeig'))) return;
-  await warten(PASST_ZEIT.vormachen);
+  await warten(PASST_ZEIT.rundherum);   // Zeit, mit dem Finger einmal rundherum zu fahren
   if (!paAktuell(nr)) return;
   glockenspiel();
   if (!(await paAnsage(nr, 'passt-welt-fertig'))) return;
@@ -1011,7 +1011,7 @@ window.addEventListener('resize', () => { if ($('#passt').classList.contains('ac
 const MAUS_LAGEN = ['auf', 'in', 'unter'];
 const MAUS_STUFEN = [3, 3, 3];
 const MAUS_SYMBOL = ['👀', '👂', '🗣️'];
-const MAUS_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 9000, antwort: 5000, pause: 900, daumen: 6000, auftragNochmal: 16000 };
+const MAUS_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 9000, antwort: 5000, pause: 900, vormachen: 1500, daumen: 6000, auftragNochmal: 16000 };
 const ms = { stufe: 0, schritt: 0, punkte: 0, folge: [], ziel: null, lage: 'start', versuche: 0, ziehen: null,
   gesperrt: true, timer: null, nummer: 0, fertig: false, inEcht: false, auftrag: false, mass: null, welt: 'unter',
   hilfen: 0, tipps: 0 };
@@ -1318,13 +1318,19 @@ async function msNaechsteStufe() {
 
 // ----- Echte Welt: „Setz dein Kuscheltier unter den Tisch!“ – nach 👍 „Dein Kuscheltier ist unter dem Tisch!“ -----
 
-function mausAuftrag() {
+// Erst vormachen: die Maus huscht dorthin, wo das Kuscheltier gleich hin soll
+async function mausAuftrag() {
   mausStoppen();
   const nr = ms.nummer;
   ms.auftrag = true;
   ms.fertig = false;
   $('#btn-maus-daumen').hidden = true;
   ms.welt = zufall(['unter', 'auf']);
+  ms.gesperrt = true;
+  msHuschen(ms.welt);
+  if (!(await msAnsage(nr, `maus-ist-${ms.welt}`))) return;
+  await warten(MAUS_ZEIT.vormachen);
+  if (!msAktuell(nr)) return;
   const bild = ms.welt === 'unter' ? '<span class="karte-bild">🧸</span><span class="karte-bild">⬇️</span>' : '<span class="karte-bild">🧸</span><span class="karte-bild">⬆️</span>';
   inEcht({ z: ms, nr, aktuell: msAktuell, ansage: msAnsage, buehne: $('#maus-feld'), knopf: $('#btn-maus-daumen'),
     karteHtml: bild, sagen: (nr2) => msAnsage(nr2, `maus-welt-${ms.welt}`), zeit: MAUS_ZEIT });
@@ -1381,7 +1387,7 @@ window.addEventListener('resize', () => { if ($('#maus').classList.contains('act
 // Zum Schluss in echt: „Such ein Dreieck bei dir zu Hause!“
 const FORMEN_STUFEN = [3, 4, 3, 3];
 const FORMEN_SYMBOL = ['👀', '👂', '🗣️', '🔍'];
-const FORMEN_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 8000, antwort: 5000, auchWeiter: 2200, pause: 900, daumen: 6000, auftragNochmal: 16000 };
+const FORMEN_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 8000, antwort: 5000, auchWeiter: 2200, pause: 900, vormachen: 1500, daumen: 6000, auftragNochmal: 16000 };
 const FORMEN_FARBE = '#5b4636';
 // Formen in Ecken-Koordinaten (Kreis ohne Ecken); Bezug 100×100, gleiche Fläche wie bei „Passt rein“
 const FORMEN_GRUND = {
@@ -1617,13 +1623,22 @@ async function foNaechsteStufe() {
 
 // ----- Echte Welt: „Such ein Dreieck bei dir zu Hause!“ -----
 
-function formenAuftrag() {
+// Gesucht wird eine Form, bei der das Kind sicher war – am liebsten der Kreis (zu Hause am leichtesten zu finden);
+// erst vormachen: die Form allein, „Das ist ein Kreis.“
+async function formenAuftrag() {
   formenStoppen();
   const nr = fo.nummer;
   fo.fertig = false;
   $('#btn-formen-daumen').hidden = true;
-  fo.welt = zufall(PASST_FORMEN);
+  const sicher = PASST_FORMEN.filter((f) => !fo.unsicher.has(f));
+  fo.welt = sicher.includes('kreis') || !sicher.length ? 'kreis' : zufall(sicher);
   const box = $('#formen-karten');
+  fo.gesperrt = true;
+  box.innerHTML = '';
+  box.appendChild(foKarte(fo.welt));
+  if (!(await foAnsage(nr, `formen-ist-${fo.welt}`))) return;
+  await warten(FORMEN_ZEIT.vormachen);
+  if (!foAktuell(nr)) return;
   box.className = 'mengen-karten';
   inEcht({ z: fo, nr, aktuell: foAktuell, ansage: foAnsage, buehne: box, knopf: $('#btn-formen-daumen'),
     karteHtml: `${formBildSvg(FORMEN_GRUND[fo.welt])}<span class="karte-bild">🔎</span>`, sagen: (nr2) => foAnsage(nr2, `formen-such-${fo.welt}`), zeit: FORMEN_ZEIT });
@@ -1795,8 +1810,7 @@ async function klGetippt(art, btn) {
     luecke.classList.add('gefuellt');
     luecke.classList.remove('blass');
     await warten(450);
-    if (!klAktuell(nr)) return;
-    if (!(await klRichtig(nr))) return;
+    if (klAktuell(nr)) klRichtig(nr);
     return;
   }
   kl.versuche++;
@@ -1820,9 +1834,10 @@ async function klGetippt(art, btn) {
   klFragen(nr);
 }
 
-// Passt: die ganze Reihe einmal mit Klang, dann die nächste Runde
+// Passt: „Mach mit!“ – die ganze Reihe einmal mit Klang (das Kind klatscht und stampft mit), dann die nächste Runde
 async function klRichtig(nr) {
   document.querySelectorAll('#klatsch-feld .klatsch-knopf').forEach((b) => b.classList.remove('hinweis'));
+  if (!(await klAnsage(nr, 'klatsch-mach-mit'))) return false;
   const alle = [...document.querySelectorAll('#klatsch-feld .klatsch-bild')];
   if (!(await klReiheVorspielen(nr, `klatsch-voll-${kl.runde + 1}`, alle))) return false;
   glockenspiel();
@@ -1903,7 +1918,7 @@ const MUSTER_RUNDEN = [
   { art: 'weiter', reihe: ['kreis', 'dreieck', 'quadrat', 'kreis', 'dreieck'], fehlt: 'quadrat' },
 ];
 const MUSTER_WORT = { kreis: 'Kreis', dreieck: 'Dreieck', quadrat: 'Quadrat' };
-const MUSTER_ZEIT = { hilfe: 12000, pause: 700, daumen: 6000, auftragNochmal: 16000 };
+const MUSTER_ZEIT = { hilfe: 12000, pause: 700, vormachen: 600, daumen: 6000, auftragNochmal: 16000 };
 const mu = { runde: 0, ziele: [], teile: [], vorlage: [], ziehen: null, gesperrt: true, timer: null, nummer: 0,
   versuche: 0, fertig: false, inEcht: false, auftrag: false, mass: null, hilfen: 0, tipps: 0 };
 const muBausteine = spielBausteine('muster', mu);
@@ -2158,12 +2173,24 @@ function muKlick() {
 
 // ----- Echte Welt: „Leg ein Muster mit echten Dingen: Löffel, Becher, Löffel, Becher!“ -----
 
-function musterAuftrag() {
+// Erst vormachen: Löffel, Becher, Löffel, Becher erscheinen nacheinander (still, mit Klick)
+async function musterAuftrag() {
   musterStoppen();
   const nr = mu.nummer;
   mu.auftrag = true;
   mu.fertig = false;
   $('#btn-muster-daumen').hidden = true;
+  const feld = $('#muster-feld');
+  feld.innerHTML = `<div class="in-echt"><div class="in-echt-karte">${['🥄', '🥤', '🥄', '🥤'].map((b) => `<span class="karte-bild" hidden>${b}</span>`).join('')}</div></div>`;
+  for (const b of feld.querySelectorAll('.karte-bild')) {
+    await warten(MUSTER_ZEIT.vormachen);
+    if (!muAktuell(nr)) return;
+    b.hidden = false;
+    animieren(b, 'kommt');
+    muKlick();
+  }
+  await warten(MUSTER_ZEIT.vormachen);
+  if (!muAktuell(nr)) return;
   inEcht({ z: mu, nr, aktuell: muAktuell, ansage: muAnsage, buehne: $('#muster-feld'), knopf: $('#btn-muster-daumen'),
     karteHtml: ['🥄', '🥤', '🥄', '🥤'].map((b) => `<span class="karte-bild">${b}</span>`).join(''), sagen: (nr2) => muAnsage(nr2, 'muster-welt'), zeit: MUSTER_ZEIT });
 }

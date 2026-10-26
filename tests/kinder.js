@@ -69,6 +69,8 @@
   history.back();
   await bis(() => aktiv('eltern'));
 
+  pruefe(htmlText('a"b<c') === 'a&quot;b&lt;c', `htmlText schützt Attribute nicht: ${htmlText('a"b<c')}`);
+
   // 4. Keine Zahlen über Kinder im Elternbereich (keine Zähler, nichts zum Vergleichen)
   pruefe(!/\d/.test($('#kinder-liste').textContent), `Zahl in der Kinderliste: ${$('#kinder-liste').textContent}`);
 

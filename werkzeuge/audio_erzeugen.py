@@ -39,15 +39,16 @@ def synth(stimme, text, tempo=1.0):
 
 # Piper („Thorsten“) spricht manche Wörter allein schlecht, im Satz aber gut (Rückmeldung des Users: „fünf“).
 # Dann: „Das sind fünf.“ sprechen und das Wort an der leisesten Stelle nach „Das sind“ herausschneiden.
-ALLEIN_SCHLECHT = {'fünf'}
-TRAEGER = 'Das sind'
+# Wort -> Satz davor, aus dem es herausgeschnitten wird („rund“ klingt nur in „Das ist rund.“ gut)
+ALLEIN_SCHLECHT = {'fünf': 'Das sind', 'rund': 'Das ist'}
 
 
 def aus_traeger(stimme, wort, rate, tempo, zeichen='.'):
     cfg = SynthesisConfig(length_scale=tempo)
     roh = lambda t: np.concatenate([c.audio_float_array for c in stimme.synthesize(t, syn_config=cfg)])
-    voll = trimmen(roh(f'{TRAEGER} {wort.lower()}{zeichen}'))
-    vor = len(trimmen(roh(TRAEGER)))
+    traeger = ALLEIN_SCHLECHT[wort.lower()]
+    voll = trimmen(roh(f'{traeger} {wort.lower()}{zeichen}'))
+    vor = len(trimmen(roh(traeger)))
     fenster = int(rate * 0.01)
     energie = np.array([np.sqrt(np.mean(voll[i:i + fenster] ** 2)) for i in range(0, len(voll) - fenster, fenster)])
     von, bis = int(vor * 0.85 / fenster), min(len(energie) - 1, int(vor * 1.15 / fenster))

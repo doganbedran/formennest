@@ -429,7 +429,8 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 .muster-teil.fest { background: var(--papier); box-shadow: var(--schatten); padding: 5px; transition: transform 0.2s; }
 .muster-teil.fest.leuchtet, .muster-teil.los.leuchtet { box-shadow: 0 0 0 4px #f5c518; }
 .muster-teil.fest.huepft { animation: huepfen 0.5s ease; }
-.muster-teil.los { left: 0; top: 0; touch-action: none; transition: transform 0.3s ease-out; padding: 5px; }
+.muster-teil.los { left: 0; top: 0; touch-action: none; transition: transform 0.3s ease-out; padding: 5px;
+  background: var(--papier); box-shadow: var(--schatten); }
 .muster-teil.los .figur-bild { display: block; width: 100%; height: 100%; }
 .muster-teil.los.greift { transition: none; z-index: 5; }
 .muster-teil.los.huepft .figur-bild { animation: ding-huepfen 0.4s ease; }

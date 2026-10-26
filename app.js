@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -1040,7 +1040,7 @@ function msMasse() {
   const boden = y0 + kH + beinH;
   const plaetze = {
     auf: [x0 + B * 0.74, y0 - M * 0.42],
-    in: [x0 + B * 0.27, y0 + M * 0.12],
+    in: [x0 + B * 0.27, y0 - M * 0.22],
     unter: [W / 2, boden - M * 0.5],
     start: [Math.max(M * 0.6, x0 - M * 0.9), boden - M * 0.5],
   };
@@ -1066,7 +1066,7 @@ function msAnordnen() {
   ms.mass = msMasse();
   const { B, kH, beinH, M, x0, y0 } = ms.mass;
   const kiste = feld.querySelector('.kiste-vorn'), hinten = feld.querySelector('.kiste-hinten');
-  [kiste, hinten].forEach((el) => Object.assign(el.style, { left: `${x0}px`, top: `${y0 - B * 0.06}px`, width: `${B}px`, height: `${kH + beinH + B * 0.06}px` }));
+  [kiste, hinten].forEach((el) => Object.assign(el.style, { left: `${x0}px`, top: `${y0 - B * 0.28}px`, width: `${B}px`, height: `${kH + beinH + B * 0.28}px` }));
   Object.assign(ms.maus.style, { width: `${M}px`, height: `${M}px`, fontSize: `${M * 0.82}px` });
   feld.querySelectorAll('.platz').forEach((el) => {
     const [x, y] = ms.mass.plaetze[el.dataset.lage];
@@ -1075,19 +1075,24 @@ function msAnordnen() {
   msMausAufPlatz();
 }
 
-// Kiste in zwei Ebenen: hinten das dunkle Innere, vorn Vorderwand, Deckel (rechte Hälfte) und Beine
+// Kiste in zwei Ebenen: hinten die linke Klappe (hochgeklappt) und die dunkle Öffnung, vorn Vorderwand, Deckel
+// (rechte Hälfte, zu) und Beine
 function msFeldAufbauen() {
   const feld = $('#maus-feld');
   feld.closest('.screen').classList.remove('ruhig');
-  const v = '0 0 100 92';   // Kiste 100 breit; oben 6 Rand, Kasten 50 hoch, Beine 36
+  const v = '0 -22 100 114';   // Kiste 100 breit; oben 28 Klappe und Rand, Kasten 50 hoch, Beine 36
   feld.innerHTML = `<svg class="kiste-hinten" viewBox="${v}" preserveAspectRatio="none" aria-hidden="true">`
-    + '<rect x="2" y="6" width="96" height="10" fill="#5a3a22"/></svg>'
+    + '<path d="M3 4 L49 4 L45 -19 L7 -19 Z" fill="#b07a40" stroke="#4a3f35" stroke-width="2.5" stroke-linejoin="round"/>'
+    + '<path d="M8 -8 H44" stroke="#8f5f2c" stroke-width="2"/>'
+    + '<rect x="10" y="1" width="6" height="4" rx="1" fill="#4a3f35"/><rect x="36" y="1" width="6" height="4" rx="1" fill="#4a3f35"/>'
+    + '<rect x="2" y="3" width="48" height="12" fill="#24150a" stroke="#4a3f35" stroke-width="2.5"/>'
+    + '<rect x="3.5" y="4.5" width="45" height="3.5" fill="#4a2f1a"/></svg>'
     + MAUS_LAGEN.map((l) => `<div class="platz" data-lage="${l}"></div>`).join('')
     + '<div class="maus" aria-hidden="true"><span class="figur-bild">🐭</span></div>'
     + `<svg class="kiste-vorn" viewBox="${v}" preserveAspectRatio="none" aria-hidden="true">`
     + '<rect x="2" y="14" width="96" height="42" rx="3" fill="#c98f4e" stroke="#4a3f35" stroke-width="2.5"/>'
     + '<path d="M8 28 H92 M8 42 H92" stroke="#a8743a" stroke-width="2"/>'
-    + '<rect x="50" y="6" width="50" height="9" rx="2" fill="#d9a466" stroke="#4a3f35" stroke-width="2.5"/>'
+    + '<rect x="50" y="3" width="48" height="12" fill="#d9a466" stroke="#4a3f35" stroke-width="2.5"/>'
     + '<rect x="8" y="56" width="9" height="36" rx="2" fill="#a8743a" stroke="#4a3f35" stroke-width="2.5"/>'
     + '<rect x="83" y="56" width="9" height="36" rx="2" fill="#a8743a" stroke="#4a3f35" stroke-width="2.5"/></svg>';
   ms.maus = feld.querySelector('.maus');
@@ -1913,9 +1918,9 @@ function musterStoppen() {
 
 // Muster-Teile: Form und Helligkeit verschieden (dunkel / hell / mittel), gleich große Fläche
 function musterSvg(form) {
-  if (form === 'kreis') return '<svg viewBox="-12 -12 124 124" aria-hidden="true"><circle cx="50" cy="50" r="38" fill="#4a3f35"/></svg>';
-  if (form === 'quadrat') return '<svg viewBox="-12 -12 124 124" aria-hidden="true"><rect x="16.5" y="16.5" width="67" height="67" rx="3" fill="#b98a5a" stroke="#4a3f35" stroke-width="3"/></svg>';
-  return '<svg viewBox="-12 -12 124 124" aria-hidden="true"><path d="M50 -2.9 L101 85.4 L-1 85.4 Z" fill="#fff3c4" stroke="#4a3f35" stroke-width="4" stroke-linejoin="round"/></svg>';
+  if (form === 'kreis') return '<svg viewBox="-4 -4 108 108" aria-hidden="true"><circle cx="50" cy="50" r="38" fill="#4a3f35"/></svg>';
+  if (form === 'quadrat') return '<svg viewBox="-4 -4 108 108" aria-hidden="true"><rect x="16.5" y="16.5" width="67" height="67" rx="3" fill="#b98a5a" stroke="#4a3f35" stroke-width="3"/></svg>';
+  return '<svg viewBox="-4 -4 108 108" aria-hidden="true"><path d="M50 -2.9 L101 85.4 L-1 85.4 Z" fill="#fff3c4" stroke="#4a3f35" stroke-width="4" stroke-linejoin="round"/></svg>';
 }
 
 // Kurzfassung (eher mit 3): nur nachlegen
@@ -1930,13 +1935,15 @@ function muMasse() {
   const feld = $('#muster-feld');
   const W = feld.clientWidth, H = feld.clientHeight;
   const quer = W > H;
-  const S = Math.min(80, (W - 24) / 6.4, H / (quer ? 4.6 : 7));
-  const abstand = S * 1.12;
+  const S = Math.min(96, (W - 16) / 6.3, H / (quer ? 4.4 : 6.5));
+  const abstand = S * 1.06;
   const reiheX = (i, n) => W / 2 - ((n - 1) * abstand) / 2 + i * abstand;
+  // Im Vorrat mehr Luft zwischen den Teilen (leichter zu greifen)
+  const vorratX = (i, n) => { const a = Math.min(S * 1.45, (W - 16 - S) / Math.max(1, n - 1)); return W / 2 - ((n - 1) * a) / 2 + i * a; };
   const oben = quer ? H * 0.2 : H * 0.18;
   const unten = quer ? H * 0.47 : H * 0.36;
   const vorrat = quer ? H * 0.8 : H * 0.62;
-  return { W, H, S, abstand, reiheX, oben, unten, vorrat };
+  return { W, H, S, abstand, reiheX, vorratX, oben, unten, vorrat };
 }
 
 function muSetzen(t, x, y) {
@@ -1950,7 +1957,7 @@ function muAnordnen() {
   const feld = $('#muster-feld');
   if (!feld.clientWidth || !mu.ziele.length) return;
   mu.mass = muMasse();
-  const { S, reiheX, oben, unten, vorrat } = mu.mass;
+  const { S, reiheX, vorratX, oben, unten, vorrat } = mu.mass;
   const nach = muRunde().art === 'nach';
   const reiheN = mu.vorlage.length + (nach ? 0 : 1);
   mu.vorlage.forEach((v, i) => Object.assign(v.el.style, { left: `${reiheX(i, reiheN) - S / 2}px`, top: `${oben - S / 2}px`, width: `${S}px`, height: `${S}px` }));
@@ -1961,7 +1968,7 @@ function muAnordnen() {
   });
   mu.teile.forEach((t, i) => {
     Object.assign(t.el.style, { width: `${S}px`, height: `${S}px` });
-    t.heim = [reiheX(i, mu.teile.length), vorrat];
+    t.heim = [vorratX(i, mu.teile.length), vorrat];
     if (t.drin) muSetzen(t, t.drin.x, t.drin.y); else muSetzen(t, ...t.heim);
   });
 }

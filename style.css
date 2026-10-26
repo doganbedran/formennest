@@ -372,6 +372,17 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 .zeige-hand { position: absolute; left: 0; top: 0; z-index: 6; font-size: 64px; line-height: 1; margin-left: -0.55em;
   pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3)); transition: transform 0.85s ease-in-out; }
 
+/* Umfahren (Passt rein, Runde 1): Form groß über dem Spielfeld, breite helle Spur, warme Fingerspur */
+.umfahren { position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; touch-action: none;
+  background: rgba(255, 248, 238, 0.97); animation: aufploppen 0.35s ease-out; }
+.umfahren svg { overflow: visible; display: block; pointer-events: none; }
+.umfahren-spur { fill: none; stroke: #efe3cf; stroke-linejoin: round; }
+.umfahren-finger { fill: none; stroke: #e8891c; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+.umfahren-ecke { fill: transparent; transition: fill 0.2s; }
+.umfahren-ecke.leuchtet { fill: #f5c518; }
+.umfahren.geschafft .umfahren-form { filter: drop-shadow(0 0 8px #f5c518); }
+.umfahren-hand { transition: transform 0.11s linear; }
+
 #maus, .maus-feld { touch-action: none; overscroll-behavior: none; }
 .maus-feld { flex: 1; position: relative; min-height: 0; }
 .kiste-hinten, .kiste-vorn { position: absolute; display: block; overflow: visible; }

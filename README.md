@@ -14,7 +14,10 @@ hinzufügen“. Elternbereich: ⚙️ oben rechts 2 Sekunden halten. Fragen und 
 ## Spiele
 - 🔷 **Passt rein** (ab 3) – wie die Geometrische Kommode: Kreis, Quadrat und Dreieck (gleiche Farbe, etwa gleiche
   Fläche) in die passende Mulde schieben. Nur die richtige nimmt an („klack“); in einer falschen wackelt der Einsatz und
-  bleibt daneben liegen. Nach 2 Versuchen leuchtet die richtige Mulde, nach 3 gleitet er von selbst hinein. Drei
+  bleibt daneben liegen. Nach 2 Versuchen leuchtet die richtige Mulde, nach 3 gleitet er von selbst hinein. In Runde 1
+  wird jede eingesetzte Form groß einmal umfahren („Fahr mit dem Finger rundherum!“): ohne Startpunkt und Richtung,
+  breite Spur, keine Prüfung der Genauigkeit – nach gut zwei Dritteln des Randes „Rundherum. Ein Kreis!“; Ecken
+  vibrieren und leuchten kurz; lange nichts: erst fährt die Hand vor, dann die App selbst. Kurzfassung: nur der Kreis. Drei
   Runden, die Mulden liegen jedes Mal anders, in Runde 3 leicht gedreht. Zum Schluss: „Such etwas Rundes bei dir zu
   Hause!“ – „Fahr mit dem Finger rundherum!“
 

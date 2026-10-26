@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 14;
+const APP_VERSION = 15;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -694,12 +694,12 @@ async function handZeigen(feld, el, [x1, y1], [x2, y2], setzen, aktuell) {
 // liegen jedes Mal anders, in Runde 3 leicht gedreht (Quadrat nur wenig – auf der Spitze wäre es eine „Raute“).
 // Zum Schluss in echt: „Such etwas Rundes bei dir zu Hause!“ – „Fahr mit dem Finger rundherum!“
 const PASST_RUNDEN = 3;
-const PASST_ZEIT = { hilfe: 12000, rundenPause: 900, vormachen: 2600, rundherum: 5000, daumen: 6000, auftragNochmal: 16000 };
+const PASST_ZEIT = { hilfe: 12000, rundenPause: 900, vormachen: 2600, rundherum: 5000, umfahrenHilfe: 10000, daumen: 6000, auftragNochmal: 16000 };
 const PASST_FORMEN = ['kreis', 'quadrat', 'dreieck'];
 // Drehung der Mulden in Runde 3 (Grad)
 const PASST_DREHUNG = { kreis: 0, quadrat: 12, dreieck: 28 };
 const pa = { runde: 0, mulden: [], teile: [], ziehen: null, gesperrt: true, timer: null, nummer: 0, fertig: false,
-  inEcht: false, auftrag: false, mass: null, versuche: {}, hilfen: 0, tipps: 0 };
+  inEcht: false, auftrag: false, mass: null, versuche: {}, hilfen: 0, tipps: 0, umfahren: null };
 const paBausteine = spielBausteine('passt', pa);
 const { aktuell: paAktuell, ansage: paAnsage } = paBausteine;
 SPIEL_STOPPEN.push(() => passtStoppen());
@@ -707,6 +707,7 @@ SPIEL_STOPPEN.push(() => passtStoppen());
 function passtStoppen() {
   paBausteine.stoppen();
   pa.ziehen = null;
+  pa.umfahren = null;
 }
 
 // Form als SVG-Inhalt (Bezug: Mittelpunkt 50/50, etwa gleiche Fläche ~4500)
@@ -911,7 +912,11 @@ async function paEinsetzen(t, m) {
   paSetzen(t, m.x, m.y);
   paKlack();
   try { if (navigator.vibrate) navigator.vibrate(30); } catch { /* egal */ }
-  if (pa.teile.some((x) => !x.drin)) { paHilfeAbwarten(nr); return; }
+  // Runde 1: eingesetzte Form einmal umfahren (Kurzfassung: nur den Kreis)
+  if (pa.runde === 0 && (!zustand.kurz || t.form === 'kreis')) {
+    if (!(await paUmfahren(nr, t.form))) return;
+  }
+  if (pa.teile.some((x) => !x.drin)) { pa.gesperrt = false; paHilfeAbwarten(nr); return; }
   pa.gesperrt = true;
   clearTimeout(pa.timer);
   await warten(450);
@@ -942,6 +947,136 @@ function paKlack() {
 }
 
 // ----- Echte Welt: vormachen (ein Finger fährt um den Kreis), dann „Such etwas Rundes bei dir zu Hause!“ -----
+
+// ----- Umfahren (Runde 1): wie an der Formen-Kommode die Form mit dem Finger einmal rundherum ertasten -----
+// Groß über dem Spielfeld, breite helle Spur, kein Startpunkt, keine Richtung, Absetzen erlaubt, keine Prüfung der
+// Genauigkeit: ist der Finger an etwa 70 % des Randes gewesen, leuchtet die Form – „Rundherum. Ein Kreis!“. Ecken:
+// kurz vibrieren und aufleuchten (spüren, nicht zählen). Lange nichts: die Hand fährt einmal vor, danach die App selbst.
+const UMFAHREN_ANTEIL = 0.7;
+const UMFAHREN_SPUR = 44;   // Breite der hellen Spur in px
+
+// Umriss in SVG-Einheiten (wie formInhalt, Bezug 50/50): Punkte gleichmäßig verteilt, dazu die Ecken
+function paUmriss(form) {
+  if (form === 'kreis') return { punkte: Array.from({ length: 72 }, (_, i) => [50 + 38 * Math.cos((i / 72) * 2 * Math.PI), 50 + 38 * Math.sin((i / 72) * 2 * Math.PI)]), ecken: [] };
+  const ecken = form === 'quadrat' ? [[16.5, 16.5], [83.5, 16.5], [83.5, 83.5], [16.5, 83.5]] : [[50, -2.9], [101, 85.4], [-1, 85.4]];
+  const punkte = [];
+  ecken.forEach((a, i) => {
+    const b = ecken[(i + 1) % ecken.length];
+    const n = Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 4);
+    for (let k = 0; k < n; k++) punkte.push([a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n]);
+  });
+  return { punkte, ecken };
+}
+
+async function paUmfahren(nr, form) {
+  pa.gesperrt = true;
+  const feld = $('#passt-feld');
+  const { W, H } = pa.mass;
+  const G = Math.min(W * 0.8, H * 0.6, 340);   // Größe der Form in px (124 SVG-Einheiten)
+  const px = G / 124;
+  const { punkte, ecken } = paUmriss(form);
+  const pfad = (p) => `M${p.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(' L')} Z`;
+  const box = document.createElement('div');
+  box.className = 'umfahren';
+  box.innerHTML = '<svg viewBox="-12 -12 124 124" aria-hidden="true">'
+    + `<path class="umfahren-spur" d="${pfad(punkte)}" stroke-width="${UMFAHREN_SPUR / px}"/>`
+    + formInhalt(form, 'teil').replace('/>', ' class="umfahren-form"/>')
+    + `<polyline class="umfahren-finger" points="" stroke-width="${14 / px}"/>`
+    + ecken.map(([x, y]) => `<circle class="umfahren-ecke" cx="${x}" cy="${y}" r="${10 / px}"/>`).join('') + '</svg>';
+  feld.appendChild(box);
+  const svg = box.querySelector('svg');
+  Object.assign(svg.style, { width: `${G}px`, height: `${G}px` });   // per Skript (die Sicherheitsregel sperrt style="…")
+  const linie = box.querySelector('.umfahren-finger');
+  const u = { form, punkte, besucht: new Set(), ecken: new Set(), zieht: null, fertig: false, bereit: false, hilfen: 0, box };
+  pa.umfahren = u;
+  // Für Tests: Umriss in Bildschirm-Punkten
+  // (Maßstab aus der echten Größe: stimmt auch, solange die Ansicht noch aufploppt)
+  u.bildschirm = () => { const r = svg.getBoundingClientRect(), m = r.width / 124; return punkte.map(([x, y]) => [r.left + (x + 12) * m, r.top + (y + 12) * m]); };
+  let fertigMelden;
+  const geschafft = new Promise((r) => { fertigMelden = r; });
+  const finger = (e) => { const r = svg.getBoundingClientRect(), m = r.width / 124; return [(e.clientX - r.left) / m - 12, (e.clientY - r.top) / m - 12]; };
+  const tol = (UMFAHREN_SPUR * 0.75) / px;
+  const beruehren = ([fx, fy]) => {
+    punkte.forEach(([x, y], i) => { if (Math.hypot(x - fx, y - fy) < tol) u.besucht.add(i); });
+    ecken.forEach(([x, y], i) => {
+      if (u.ecken.has(i) || Math.hypot(x - fx, y - fy) >= tol) return;
+      u.ecken.add(i);
+      box.querySelectorAll('.umfahren-ecke')[i].classList.add('leuchtet');
+      try { if (navigator.vibrate) navigator.vibrate(25); } catch { /* egal */ }
+    });
+    if (!u.fertig && u.besucht.size >= punkte.length * UMFAHREN_ANTEIL) { u.fertig = true; fertigMelden(); }
+  };
+  const zeichnen = (p) => { linie.setAttribute('points', `${linie.getAttribute('points')} ${p[0].toFixed(1)},${p[1].toFixed(1)}`); };
+  box.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!u.bereit || u.fertig || u.zieht !== null) return;
+    u.zieht = e.pointerId;
+    try { box.setPointerCapture(e.pointerId); } catch { /* synthetische Ereignisse (Tests) */ }
+    const p = finger(e);
+    zeichnen(p);
+    beruehren(p);
+  });
+  box.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== u.zieht) return;
+    const p = finger(e);
+    zeichnen(p);
+    beruehren(p);
+  });
+  const loslassen = (e) => { if (e.pointerId === u.zieht) u.zieht = null; };
+  box.addEventListener('pointerup', loslassen);
+  box.addEventListener('pointercancel', loslassen);
+
+  if (!(await paAnsage(nr, 'passt-rundherum'))) return false;
+  u.bereit = true;
+  // Lange nichts: 1. die Hand fährt einmal herum, 2. die App fährt selbst herum
+  const hilfe = () => {
+    clearTimeout(pa.timer);
+    pa.timer = setTimeout(async () => {
+      if (!paAktuell(nr) || u.fertig) return;
+      if (u.zieht !== null) { hilfe(); return; }
+      u.hilfen++;
+      u.bereit = false;
+      await paHandHerum(box, u.bildschirm(), u.hilfen >= 2 ? beruehren : null, svg, () => paAktuell(nr));
+      if (!paAktuell(nr) || u.fertig) return;
+      u.bereit = true;
+      hilfe();
+    }, PASST_ZEIT.umfahrenHilfe);
+  };
+  hilfe();
+  await geschafft;
+  clearTimeout(pa.timer);
+  if (!paAktuell(nr)) return false;
+  u.bereit = false;
+  box.classList.add('geschafft');
+  glockenspiel();
+  if (!(await paAnsage(nr, `passt-rund-${form}`))) return false;
+  await warten(500);
+  if (!paAktuell(nr)) return false;
+  box.remove();
+  pa.umfahren = null;
+  return true;
+}
+
+// Hand fährt einmal den Umriss entlang; mit „beruehren“ zählt das als selbst gefahren (die App macht es zu Ende)
+async function paHandHerum(box, bildschirm, beruehren, svg, aktuell) {
+  const r0 = box.getBoundingClientRect(), r = svg.getBoundingClientRect(), m = r.width / 124;
+  const hand = document.createElement('div');
+  hand.className = 'zeige-hand umfahren-hand';
+  hand.textContent = '☝️';
+  const schritte = bildschirm.filter((_, i) => i % 3 === 0).concat([bildschirm[0]]);
+  const nach = ([x, y]) => { hand.style.transform = `translate(${x - r0.left}px, ${y - r0.top}px)`; };
+  nach(schritte[0]);
+  box.appendChild(hand);
+  await warten(400);
+  for (const p of schritte) {
+    if (!aktuell()) break;
+    nach(p);
+    if (beruehren) beruehren([(p[0] - r.left) / m - 12, (p[1] - r.top) / m - 12]);
+    await warten(110);
+  }
+  await warten(300);
+  hand.remove();
+}
 
 async function passtAuftrag() {
   passtStoppen();

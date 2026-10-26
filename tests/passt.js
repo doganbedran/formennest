@@ -29,6 +29,16 @@
     ev(document, 'pointerup', { x: ziel.x, y: ziel.y + 30 });
     await warte(30);
   };
+  // Runde 1: die eingesetzte Form einmal umfahren (Finger fährt den Umriss entlang)
+  const umfahren = async () => {
+    await bis(() => pa.umfahren && pa.umfahren.bereit);
+    await warte(400);   // Ansicht ploppt erst auf
+    const u = pa.umfahren, p = u.bildschirm();
+    ev(u.box, 'pointerdown', { x: p[0][0], y: p[0][1] });
+    p.forEach(([x, y]) => ev(u.box, 'pointermove', { x, y }));
+    ev(u.box, 'pointerup', { x: p[0][0], y: p[0][1] });
+    await bis(() => !pa.umfahren);
+  };
   const teil = (form) => pa.teile.find((t) => t.form === form);
   const mulde = (form) => pa.mulden.find((m) => m.form === form);
   const andere = (form) => pa.mulden.find((m) => m.form !== form && !m.belegt);
@@ -64,10 +74,36 @@
   await bis(() => k.drin);
   pruefe(k.drin === mulde('kreis') && !mulde('kreis').el.classList.contains('hinweis'), 'Nach 3 Versuchen nicht von selbst eingesetzt');
 
+  // 3a. Umfahren (Runde 1): groß, ohne Startpunkt/Pfeile; halb herum reicht nicht, gut zwei Drittel schon
+  await bis(() => pa.umfahren && pa.umfahren.bereit);
+  await warte(400);
+  pruefe(zuletzt() === 'passt-rundherum' && $('#passt-feld .umfahren svg').getBoundingClientRect().width > 150, 'Umfahren: nicht groß angezeigt');
+  pruefe(!/[A-Za-zÄÖÜäöüß0-9]/.test($('#passt').innerText), 'Umfahren: Text auf dem Bildschirm');
+  {
+    const u = pa.umfahren, p = u.bildschirm();
+    ev(u.box, 'pointerdown', { x: p[0][0], y: p[0][1] });
+    p.slice(0, Math.floor(p.length / 2)).forEach(([x, y]) => ev(u.box, 'pointermove', { x, y }));
+    ev(u.box, 'pointerup', { x: 0, y: 0 });
+    await warte(100);
+    pruefe(pa.umfahren && !u.fertig, 'Umfahren: halb herum zählt schon');
+    // weiter, nach dem Absetzen (kein Neuanfang nötig)
+    ev(u.box, 'pointerdown', { x: p[Math.floor(p.length / 2)][0], y: p[Math.floor(p.length / 2)][1] });
+    p.slice(Math.floor(p.length / 2), Math.floor(p.length * 0.8)).forEach(([x, y]) => ev(u.box, 'pointermove', { x, y }));
+    ev(u.box, 'pointerup', { x: 0, y: 0 });
+    await bis(() => !pa.umfahren);
+    pruefe(gesagt.includes('passt-rund-kreis') && !pa.umfahren && !$('#passt-feld .umfahren'), `Umfahren: nicht fertig nach 80 % (${gesagt.slice(-2)})`);
+  }
+
   // 4. Richtig einsetzen: rastet ein; Runde fertig → „Alles passt!“, Runde 2
   await schieben(teil('quadrat'), mitte(mulde('quadrat').el));
   pruefe(teil('quadrat').drin, 'Quadrat rastet nicht ein');
+  // Ecken leuchten beim Umfahren auf
+  await bis(() => pa.umfahren && pa.umfahren.bereit);
+  const uq = pa.umfahren;
+  await umfahren();
+  pruefe(uq.ecken.size === 4 && uq.box.querySelectorAll('.umfahren-ecke.leuchtet').length === 4, `Quadrat: Ecken nicht gespürt (${uq.ecken.size})`);
   await schieben(teil('dreieck'), mitte(mulde('dreieck').el));
+  await umfahren();
   await bis(() => pa.runde === 1 && !pa.gesperrt);
   pruefe(gesagt.includes('passt-fertig') && zuletzt() === 'passt-start', `Runde 1 fertig: ${gesagt.slice(-3)}`);
 
@@ -138,6 +174,27 @@
   PASST_ZEIT.hilfe = 12000;
   const hilfen9 = gesagt.slice(n9).filter((g) => g === 'passt-hilfe').length;
   pruefe(pa.teile.filter((t) => t.drin).length === 1 && hilfen9 === 3, `3. Erinnerung: nicht selbst eingesetzt (${hilfen9} Erinnerungen)`);
+
+  // 10. Umfahren, lange nichts: 1. die Hand fährt einmal herum, 2. die App fährt selbst herum – weiter
+  PASST_ZEIT.umfahrenHilfe = 150;
+  await bis(() => $('#passt-feld .umfahren-hand'), 14000);
+  pruefe($('#passt-feld .umfahren-hand') && pa.umfahren && pa.umfahren.besucht.size === 0, 'Umfahren: Hand fehlt oder zählt schon');
+  await bis(() => !pa.umfahren && !pa.gesperrt, 12000);
+  PASST_ZEIT.umfahrenHilfe = 10000;
+  pruefe(!pa.umfahren && gesagt.some((g) => g.startsWith('passt-rund-')), 'Umfahren: App fährt nicht selbst herum');
+
+  // 11. Kurzfassung: nur der Kreis wird umfahren
+  zustand.kurz = true;
+  passtNeu();
+  await bis(() => !pa.gesperrt);
+  const fq = teil('quadrat');
+  await schieben(fq, mitte(mulde('quadrat').el));
+  await warte(300);
+  pruefe(fq.drin && !pa.umfahren, 'Kurzfassung: Quadrat wird umfahren');
+  await schieben(teil('kreis'), mitte(mulde('kreis').el));
+  await bis(() => pa.umfahren, 2000);
+  pruefe(pa.umfahren && pa.umfahren.form === 'kreis', 'Kurzfassung: Kreis wird nicht umfahren');
+  zustand.kurz = false;
 
   // Ansicht: Runde 3, ein Einsatz drin
   passtNeu();

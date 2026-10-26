@@ -15,6 +15,10 @@ const ANSAGEN = {
   // Passt rein
   'passt-start': ['Jede Form hat ihren Platz. Schieb sie hinein!', 'Passt rein'],
   'passt-hilfe': ['Schau genau: Wo passt sie hinein?', 'Passt rein'],
+  'passt-rundherum': ['Fahr mit dem Finger rundherum!', 'Passt rein'],
+  'passt-rund-kreis': ['Rundherum. Ein Kreis!', 'Passt rein'],
+  'passt-rund-quadrat': ['Rundherum. Ein Quadrat!', 'Passt rein'],
+  'passt-rund-dreieck': ['Rundherum. Ein Dreieck!', 'Passt rein'],
   'passt-fertig': ['Alles passt!', 'Passt rein'],
   'passt-welt-vor': ['Schau: Rundherum, ganz rund!', 'Passt rein'],
   'passt-welt': ['Such etwas Rundes bei dir zu Hause!', 'Passt rein'],

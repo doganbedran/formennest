@@ -91,6 +91,30 @@
   pruefe(alle.every((r) => r.left >= feldR.left - 1 && r.right <= feldR.right + 1 && r.top >= feldR.top - 1 && r.bottom <= feldR.bottom + 1), 'Etwas ragt heraus');
   pruefe(!alle.some((a, i) => alle.some((b, k) => k > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)), 'Teile überlappen');
 
+  // 6. Schnelles Hin-und-her: nach dem 3. Fehlversuch legt die App nach 450 ms selbst – legt das Kind in dieser Zeit
+  // das andere passende Teil auf denselben Platz, dürfen dort nicht zwei liegen, und die Runde muss fertig werden
+  musterStoppen();
+  mu.runde = 0;
+  muRundenZeichnen();
+  musterNeueRunde();
+  await bereit();
+  const z0 = mu.ziele[0];
+  const fremd = mu.teile.find((t) => t.form !== z0.form);
+  for (let i = 0; i < 3; i++) await schieben(fremd, z0);
+  const zweites = mu.teile.filter((t) => !t.drin && t.form === z0.form)[1];
+  { // sofort, ohne die 350 ms Wartezeit von schieben()
+    const von = mitte(zweites.el), z = mitte(z0.el);
+    ev(zweites.el, 'pointerdown', von);
+    for (let i = 1; i <= 6; i++) ev(document, 'pointermove', { x: von.x + ((z.x - von.x) * i) / 6, y: von.y + ((z.y + 30 - von.y) * i) / 6 });
+    ev(document, 'pointerup', { x: z.x, y: z.y + 30 });
+  }
+  await warte(700);
+  const aufZ0 = mu.teile.filter((t) => t.drin === z0).length;
+  pruefe(aufZ0 <= 1, `Schnell nach 3. Versuch: ${aufZ0} Teile auf einem Platz`);
+  for (const z of mu.ziele.filter((x) => !x.belegt)) { if (los(z.form)) await schieben(los(z.form), z); }
+  await bis(() => mu.runde === 1, 3000);
+  pruefe(mu.runde === 1, `Schnell nach 3. Versuch: Runde bleibt hängen (frei: ${mu.ziele.filter((x) => !x.belegt).map((x) => x.form)}, Vorrat: ${mu.teile.filter((t) => !t.drin).map((t) => t.form)})`);
+
   // Ansicht: Runde 5 (ABC), das passende Teil leuchtet
   musterStoppen();
   mu.runde = 4;

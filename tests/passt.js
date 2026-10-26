@@ -95,8 +95,24 @@
   await bis(() => $('#passt .spiel-ende') && !$('#passt .spiel-ende').hidden);
   pruefe(gesagt.slice(-2).join() === 'passt-welt-zeig,passt-welt-fertig', `Schluss: ${gesagt.slice(-2)}`);
 
-  // Ansicht: Runde 3, ein Einsatz drin
+  // 8. Nach dem 3. Fehlversuch gleitet der Einsatz nach 450 ms selbst hinein – hält das Kind ihn genau dann schon
+  // wieder fest und zieht weiter, muss er trotzdem in der Mulde sitzen (nicht „drin“ zählen und daneben liegen)
   $('#passt .ende-nochmal').click();
+  await bis(() => !pa.gesperrt);
+  const k2 = teil('kreis');
+  for (let i = 0; i < 3; i++) await schieben(k2, mitte(andere('kreis').el));
+  const von2 = mitte(k2.el);
+  ev(k2.el, 'pointerdown', von2);
+  ev(document, 'pointermove', { x: von2.x + 20, y: von2.y + 20 });
+  await warte(600);
+  ev(document, 'pointermove', { x: von2.x + 40, y: von2.y + 60 });
+  ev(document, 'pointerup', { x: von2.x + 40, y: von2.y + 60 });
+  await warte(50);
+  const daneben = k2.drin ? Math.round(Math.hypot(k2.x - k2.drin.x, k2.y - k2.drin.y)) : 0;
+  pruefe(!pa.ziehen && daneben < 2, `Festgehalten beim Selbst-Einsetzen: zählt als drin, liegt aber ${daneben} px neben der Mulde`);
+
+  // Ansicht: Runde 3, ein Einsatz drin
+  passtNeu();
   passtStoppen();
   pa.runde = 2;
   paRundenZeichnen();

@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -846,7 +846,15 @@ function paPasstNicht(nr, t) {
   const n = pa.versuche[t.form] = (pa.versuche[t.form] || 0) + 1;
   const richtig = pa.mulden.find((m) => m.form === t.form);
   if (n === 2) richtig.el.classList.add('hinweis');
-  if (n >= 3) setTimeout(() => paAktuell(nr) && !t.drin && paEinsetzen(t, richtig), 450);
+  // Bis die App selbst einsetzt, ist das Spiel gesperrt (sonst greift das Kind den Einsatz in diesem Moment wieder)
+  if (n >= 3) {
+    pa.gesperrt = true;
+    setTimeout(() => {
+      if (!paAktuell(nr) || t.drin) return;
+      pa.gesperrt = false;
+      paEinsetzen(t, richtig);
+    }, 450);
+  }
   paHilfeAbwarten(nr);
 }
 
@@ -1102,7 +1110,13 @@ async function msFragen(nr) {
   if (!(await msAnsage(nr, `maus-setz-${ms.ziel}`))) return;
   ms.gesperrt = false;
   clearTimeout(ms.timer);
-  ms.timer = setTimeout(() => { if (msAktuell(nr) && !ms.gesperrt && !ms.ziehen) { msPlatzEl(ms.ziel).classList.add('hinweis'); msFragen(nr); } }, MAUS_ZEIT.nochmalFragen);
+  ms.timer = setTimeout(function nachfragen() {
+    if (!msAktuell(nr)) return;
+    // Hält das Kind die Maus gerade: später nochmal (die Hilfe fällt nicht aus)
+    if (ms.gesperrt || ms.ziehen) { ms.timer = setTimeout(nachfragen, 1000); return; }
+    msPlatzEl(ms.ziel).classList.add('hinweis');
+    msFragen(nr);
+  }, MAUS_ZEIT.nochmalFragen);
 }
 
 // Stufe 3: Maus sitzt, „Wo ist die Maus? Sag es!“ – nach einer Weile sagt die App es selbst (keine Prüfung)
@@ -1969,7 +1983,15 @@ async function muPasstNicht(nr, t, ziel) {
   animieren(t.el, 'wackelt');
   mu.versuche++;
   const passend = mu.teile.find((x) => !x.drin && x.form === ziel.form);
-  if (mu.versuche >= 3 && passend) { await warten(450); if (muAktuell(nr)) muLegen(passend, ziel); return; }
+  if (mu.versuche >= 3 && passend) {
+    // Bis die App selbst legt, ist das Spiel gesperrt; danach prüfen, ob Teil und Platz noch frei sind
+    mu.gesperrt = true;
+    await warten(450);
+    if (!muAktuell(nr)) return;
+    mu.gesperrt = false;
+    if (!passend.drin && !ziel.belegt) muLegen(passend, ziel);
+    return;
+  }
   if (mu.versuche === 2 && passend) passend.el.classList.add('hinweis');
   if (muRunde().art === 'nach') animieren(mu.vorlage[ziel.i].el, 'huepft');   // das Vorbild darüber zeigt sich
   else { clearTimeout(mu.timer); await warten(400); muFragen(nr); }
@@ -2034,6 +2056,7 @@ async function musterAuftragErledigt(nr) {
   if (!(await muZaehlen(nr, 'muster-welt-fertig', bilder))) return;
   glockenspiel();
   await warten(400);
+  if (!muAktuell(nr)) return;
   spielEnde('muster', musterNeu);
 }
 

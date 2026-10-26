@@ -40,6 +40,7 @@ LAEUFE=(
   "muster|tests/muster.html|412,860|90"
   "muster-klein|tests/muster.html|360,640|90"
   "muster-quer|tests/muster.html|860,412|90"
+  "stopp|tests/stopp.html|412,860|90"
   "ton|tests/ton.html|412,860|60"
   "daumen|tests/daumen.html|412,860|60"
   "sicherheit|tests/sicherheit.html|412,860|60"

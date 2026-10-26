@@ -47,6 +47,7 @@ seite maus 45000
 seite formen 45000
 seite klatsch 45000
 seite muster 45000
+seite stopp 45000
 seite ton 15000
 seite daumen 10000
 seite sicherheit 15000

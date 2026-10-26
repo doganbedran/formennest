@@ -76,9 +76,10 @@
   await bis(() => !pa.gesperrt);
   pruefe(pa.runde === 0 && pa.teile.every((t) => !t.drin) && log[0] === 'passt-start', `passt: Neustart nicht sauber (${log})`);
   // 🔊 doppelt getippt: Auftrag nur einmal
+  await bis(() => !pa.offen);   // 🔊 gilt erst, wenn die Stimme fertig ist
   log.length = 0;
   $('#btn-passt-laut').click(); $('#btn-passt-laut').click();
-  await bis(() => !pa.gesperrt);
+  await bis(() => !pa.offen && log.length > 0);
   pruefe(log.filter((g) => g === 'passt-start').length === 1, `passt: 🔊 doppelt → ${log}`);
   await heimUndStill('passt', 'nach 🔊');
 

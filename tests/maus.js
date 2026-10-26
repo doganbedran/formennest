@@ -117,6 +117,28 @@
   MAUS_ZEIT.nochmalFragen = 8000;
   pruefe(gesagt.slice(n7).includes('maus-ist-unter'), `3. Erinnerung: Maus läuft nicht selbst hin (${gesagt.slice(n7)})`);
 
+  // 8. Die Maus schon während „Setz die Maus …!“ setzen; die Antwort kommt erst, wenn die Stimme fertig ist
+  const echt = folgeAbspielen;
+  let spricht = 0, zugleich = false;
+  folgeAbspielen = async (folge) => {
+    if (spricht) zugleich = true;
+    spricht++;
+    gesagt.push(...folge.map((q) => q.url.replace('audio/ansage-', '').replace('.wav', '')));
+    await warte(900);
+    spricht--;
+  };
+  mausStoppen();
+  Object.assign(ms, { stufe: 1, schritt: 0, folge: ['unter', 'auf', 'in'] });
+  const n8 = gesagt.length;
+  msStufe2();
+  await bis(() => gesagt.length > n8);
+  pruefe(!ms.gesperrt && spricht === 1, 'Während „Setz die Maus …“ gesperrt');
+  await setzen('unter');
+  await bis(() => gesagt.slice(n8).includes('maus-ist-unter'), 4000);
+  pruefe(gesagt.slice(n8, n8 + 2).join() === 'maus-setz-unter,maus-ist-unter' && !zugleich, `Nacheinander: ${gesagt.slice(n8)}, zugleich ${zugleich}`);
+  folgeAbspielen = echt;
+  await bis(() => !ms.offen, 4000);
+
   // Ansicht: Stufe 2, gesuchter Platz leuchtet
   mausStoppen();
   Object.assign(ms, { stufe: 1, schritt: 0, folge: ['unter', 'auf', 'in'] });

@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -562,13 +562,19 @@ $('#btn-pause-aus').addEventListener('click', () => {
 // offen ist (z. B. 🏠 während einer kurzen Wartepause), und melden danach, ob es weitergehen darf.
 function spielBausteine(id, z) {
   const aktuell = (nr) => nr === z.nummer && $(`#${id}`).classList.contains('active');
+  // Ansagen eines Spiels kommen nacheinander, nie übereinander (das Kind darf schon während einer Ansage handeln;
+  // das Lob danach wartet, bis die Stimme fertig ist). z.offen: wie viele Ansagen noch laufen oder warten.
+  const nacheinander = (nr, abspielen) => {
+    z.offen = (z.offen || 0) + 1;
+    const p = (z.sprache || Promise.resolve()).then(() => (aktuell(nr) ? abspielen().then(() => aktuell(nr)) : false));
+    z.sprache = p.catch(() => {}).then(() => { z.offen--; });
+    return p;
+  };
   return {
     aktuell,
     stoppen() { clearTimeout(z.timer); z.nummer++; z.gesperrt = true; },
-    ansage: (nr, name) => (aktuell(nr)
-      ? folgeAbspielen([{ url: ansageUrl(name) }], ANSAGEN[name][0]).then(() => aktuell(nr)) : Promise.resolve(false)),
-    zaehlen: (nr, name, elemente, beiJedem) => (aktuell(nr)
-      ? zaehlenMitLeuchten(name, elemente, beiJedem).then(() => aktuell(nr)) : Promise.resolve(false)),
+    ansage: (nr, name) => nacheinander(nr, () => folgeAbspielen([{ url: ansageUrl(name) }], ANSAGEN[name][0])),
+    zaehlen: (nr, name, elemente, beiJedem) => nacheinander(nr, () => zaehlenMitLeuchten(name, elemente, beiJedem)),
   };
 }
 
@@ -798,10 +804,10 @@ async function passtNeueRunde() {
   paAnordnen();
   void feld.offsetWidth;
   pa.teile.forEach((t) => { t.el.style.transition = ''; });
-  pa.gesperrt = true;
-  if (!(await paAnsage(nr, 'passt-start'))) return;
+  // Schon während des Auftrags darf das Kind schieben
   pa.gesperrt = false;
   paHilfeAbwarten(nr);
+  paAnsage(nr, 'passt-start');
 }
 
 // Lange nichts versucht: Auftrag nochmal, ein loser Einsatz hüpft; beim 2. Mal zeigt die Hand das Schieben,
@@ -810,15 +816,15 @@ function paHilfeAbwarten(nr) {
   clearTimeout(pa.timer);
   pa.timer = setTimeout(async () => {
     if (!paAktuell(nr) || pa.gesperrt || pa.ziehen) { paHilfeAbwarten(nr); return; }
-    pa.gesperrt = true;
+    const hilfen = ++pa.hilfen;
     if (!(await paAnsage(nr, 'passt-hilfe'))) return;
+    // Hat das Kind während der Erinnerung gehandelt: keine Hilfe mehr nötig
+    if (pa.hilfen !== hilfen || pa.gesperrt || pa.ziehen) { if (!pa.gesperrt) paHilfeAbwarten(nr); return; }
     const los = pa.teile.find((t) => !t.drin);
-    pa.hilfen++;
-    if (los && pa.hilfen >= 3) { pa.gesperrt = false; paEinsetzen(los, pa.mulden.find((m) => m.form === los.form)); return; }
-    if (los && pa.hilfen === 2) await paHandVormachen(nr, los);
+    if (los && hilfen >= 3) { paEinsetzen(los, pa.mulden.find((m) => m.form === los.form)); return; }
+    if (los && hilfen === 2) await paHandVormachen(nr, los);
     else if (los) animieren(los.el, 'huepft');
     if (!paAktuell(nr)) return;
-    pa.gesperrt = false;
     paHilfeAbwarten(nr);
   }, PASST_ZEIT.hilfe);
 }
@@ -827,7 +833,7 @@ async function paHandVormachen(nr, t) {
   const m = pa.mulden.find((x) => x.form === t.form);
   pa.gesperrt = true;
   await handZeigen($('#passt-feld'), t.el, [t.x, t.y], [m.x, m.y], (x, y) => paSetzen(t, x, y), () => paAktuell(nr));
-  if (paAktuell(nr)) pa.gesperrt = false;
+  if (paAktuell(nr)) { pa.gesperrt = false; paHilfeAbwarten(nr); }
 }
 
 $('#passt-feld').addEventListener('pointerdown', (e) => {
@@ -1026,8 +1032,7 @@ async function paUmfahren(nr, form) {
   box.addEventListener('pointerup', loslassen);
   box.addEventListener('pointercancel', loslassen);
 
-  if (!(await paAnsage(nr, 'passt-rundherum'))) return false;
-  u.bereit = true;
+  u.bereit = true;   // schon während „Fahr mit dem Finger rundherum!“
   // Lange nichts: 1. die Hand fährt einmal herum, 2. die App fährt selbst herum
   const hilfe = () => {
     clearTimeout(pa.timer);
@@ -1043,6 +1048,7 @@ async function paUmfahren(nr, form) {
     }, PASST_ZEIT.umfahrenHilfe);
   };
   hilfe();
+  if (!(await paAnsage(nr, 'passt-rundherum'))) return false;
   await geschafft;
   clearTimeout(pa.timer);
   if (!paAktuell(nr)) return false;
@@ -1128,11 +1134,11 @@ $('#home .spiel-btn[data-spiel="passt"]').innerHTML = '<svg class="kachel-bild" 
 $('#btn-passt-home').addEventListener('click', () => { passtStoppen(); wiedergabeStoppen(); zurStartseite(); });
 $('#btn-passt-laut').addEventListener('click', () => {
   const ende = $('#passt .spiel-ende');
-  if ((ende && !ende.hidden) || pa.fertig || pa.gesperrt || pa.ziehen) return;
+  if ((ende && !ende.hidden) || pa.fertig || pa.gesperrt || pa.ziehen || pa.offen) return;
   audio();
   if (pa.inEcht) { inEchtNochmal(pa); return; }
-  pa.gesperrt = true;
-  paAnsage(pa.nummer, 'passt-start').then((ok) => { if (ok) { pa.gesperrt = false; paHilfeAbwarten(pa.nummer); } });
+  paHilfeAbwarten(pa.nummer);
+  paAnsage(pa.nummer, 'passt-start');
 });
 window.addEventListener('resize', () => { if ($('#passt').classList.contains('active') && !pa.auftrag) paAnordnen(); });
 
@@ -1149,7 +1155,7 @@ const MAUS_SYMBOL = ['👀', '👂', '🗣️'];
 const MAUS_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 9000, antwort: 5000, pause: 900, vormachen: 1500, daumen: 6000, auftragNochmal: 16000 };
 const ms = { stufe: 0, schritt: 0, punkte: 0, folge: [], ziel: null, lage: 'start', versuche: 0, ziehen: null,
   gesperrt: true, timer: null, nummer: 0, fertig: false, inEcht: false, auftrag: false, mass: null, welt: 'unter',
-  hilfen: 0, tipps: 0 };
+  hilfen: 0, tipps: 0, frage: 0 };
 const msBausteine = spielBausteine('maus', ms);
 const { aktuell: msAktuell, ansage: msAnsage } = msBausteine;
 SPIEL_STOPPEN.push(() => mausStoppen());
@@ -1292,12 +1298,16 @@ async function msStufe2() {
 
 async function msFragen(nr) {
   if (!msAktuell(nr)) return;
-  ms.gesperrt = true;
+  // Schon während der Bitte darf das Kind die Maus schieben; hat es sie gesetzt, geht es dort weiter (msGesetzt)
+  ms.gesperrt = false;
+  const frage = ++ms.frage;
   if (!(await msAnsage(nr, `maus-setz-${ms.ziel}`))) return;
+  while (ms.gesperrt && msAktuell(nr) && ms.frage === frage) await warten(100);   // zeigt die Hand gerade etwas?
+  if (ms.frage !== frage) return;
   // Lange nichts versucht: 1. Platz leuchtet, 2. die Hand zeigt das Schieben, 3. die Maus läuft selbst hin
-  if (ms.hilfen >= 3) { await warten(300); if (msAktuell(nr)) msSelbstSetzen(nr); return; }
-  if (ms.hilfen === 2) await msHandVormachen(nr);
-  if (!msAktuell(nr)) return;
+  if (ms.hilfen >= 3 && !ms.ziehen) { ms.gesperrt = true; await warten(300); if (msAktuell(nr) && ms.frage === frage) msSelbstSetzen(nr); return; }
+  if (ms.hilfen === 2 && !ms.ziehen) await msHandVormachen(nr);
+  if (!msAktuell(nr) || ms.frage !== frage) return;
   ms.gesperrt = false;
   clearTimeout(ms.timer);
   ms.timer = setTimeout(function nachfragen() {
@@ -1399,6 +1409,7 @@ document.addEventListener('pointercancel', msLoslassen);
 
 async function msGesetzt(nr) {
   clearTimeout(ms.timer);
+  ms.frage++;
   ms.gesperrt = true;
   if (ms.lage === ms.ziel) {
     msPlatzEl(ms.ziel).classList.remove('hinweis');
@@ -1505,7 +1516,7 @@ $('#home .spiel-btn[data-spiel="maus"]').innerHTML = '<span class="kachel-maus">
 $('#btn-maus-home').addEventListener('click', () => { mausStoppen(); wiedergabeStoppen(); zurStartseite(); });
 $('#btn-maus-laut').addEventListener('click', () => {
   const ende = $('#maus .spiel-ende');
-  if ((ende && !ende.hidden) || ms.fertig || ms.gesperrt || ms.ziehen) return;
+  if ((ende && !ende.hidden) || ms.fertig || ms.gesperrt || ms.ziehen || ms.offen) return;
   audio();
   if (ms.inEcht) { inEchtNochmal(ms); return; }
   if (ms.stufe === 1) { clearTimeout(ms.timer); ms.nummer++; msFragen(ms.nummer); return; }
@@ -2055,7 +2066,7 @@ const MUSTER_RUNDEN = [
 const MUSTER_WORT = { kreis: 'Kreis', dreieck: 'Dreieck', quadrat: 'Quadrat' };
 const MUSTER_ZEIT = { hilfe: 12000, pause: 700, vormachen: 600, daumen: 6000, auftragNochmal: 16000 };
 const mu = { runde: 0, ziele: [], teile: [], vorlage: [], ziehen: null, gesperrt: true, timer: null, nummer: 0,
-  versuche: 0, fertig: false, inEcht: false, auftrag: false, mass: null, hilfen: 0, tipps: 0 };
+  versuche: 0, fertig: false, inEcht: false, auftrag: false, mass: null, hilfen: 0, tipps: 0, frage: 0 };
 const muBausteine = spielBausteine('muster', mu);
 const { aktuell: muAktuell, ansage: muAnsage, zaehlen: muZaehlen } = muBausteine;
 SPIEL_STOPPEN.push(() => musterStoppen());
@@ -2172,9 +2183,14 @@ async function muFragen(nr) {
   if (!muAktuell(nr)) return;
   mu.gesperrt = true;
   const r = muRunde();
+  const frage = ++mu.frage;
   let ok;
-  if (r.art === 'nach') ok = await muAnsage(nr, 'muster-nachlegen');
-  else {
+  if (r.art === 'nach') {
+    mu.gesperrt = false;   // schon während „Leg das Muster genauso darunter!“ darf das Kind legen
+    ok = await muAnsage(nr, 'muster-nachlegen');
+    while (ok && mu.gesperrt && muAktuell(nr) && mu.frage === frage) await warten(100);   // zeigt die Hand gerade etwas?
+    if (ok && mu.frage !== frage) return;
+  } else {
     ok = await muZaehlen(nr, `muster-reihe-${mu.runde + 1}`, mu.vorlage.map((v) => v.el));
     mu.vorlage.forEach((v) => v.el.classList.remove('leuchtet'));
   }
@@ -2182,8 +2198,8 @@ async function muFragen(nr) {
   // Lange nichts versucht: 2. Mal zeigt die Hand das Schieben, 3. Mal legt die App selbst
   const frei = mu.ziele.find((x) => !x.belegt);
   const passend = frei && mu.teile.find((x) => !x.drin && x.form === frei.form);
-  if (passend && mu.hilfen >= 3) { mu.gesperrt = false; muLegen(passend, frei); return; }
-  if (passend && mu.hilfen === 2) await muHandVormachen(nr, passend, frei);
+  if (passend && mu.hilfen >= 3 && !mu.ziehen) { mu.gesperrt = false; muLegen(passend, frei); return; }
+  if (passend && mu.hilfen === 2 && !mu.ziehen) await muHandVormachen(nr, passend, frei);
   if (!muAktuell(nr)) return;
   mu.gesperrt = false;
   muHilfeAbwarten(nr);
@@ -2269,6 +2285,7 @@ async function muLegen(t, ziel) {
   const nr = mu.nummer;
   t.drin = ziel;
   ziel.belegt = true;
+  mu.frage++;
   mu.versuche = 0;
   mu.hilfen = 0;
   mu.tipps = 0;
@@ -2363,7 +2380,7 @@ $('#home .spiel-btn[data-spiel="muster"]').innerHTML = `<span class="kachel-must
 $('#btn-muster-home').addEventListener('click', () => { musterStoppen(); wiedergabeStoppen(); zurStartseite(); });
 $('#btn-muster-laut').addEventListener('click', () => {
   const ende = $('#muster .spiel-ende');
-  if ((ende && !ende.hidden) || mu.fertig || mu.gesperrt || mu.ziehen) return;
+  if ((ende && !ende.hidden) || mu.fertig || mu.gesperrt || mu.ziehen || mu.offen) return;
   audio();
   if (mu.inEcht) { inEchtNochmal(mu); return; }
   clearTimeout(mu.timer);

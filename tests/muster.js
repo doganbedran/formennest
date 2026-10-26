@@ -150,6 +150,25 @@
   zustand.kurz = false;
   musterNeu();
 
+  // 9. Nachlegen schon während „Leg das Muster genauso darunter!“; Ansagen nie übereinander
+  const echt = folgeAbspielen, echtZ = zaehlenMitLeuchten;
+  let spricht = 0, zugleich = false;
+  const lange = async (name) => { if (spricht) zugleich = true; spricht++; gesagt.push(name); await warte(900); spricht--; };
+  folgeAbspielen = (folge) => lange(folge[0].url.replace('audio/ansage-', '').replace('.wav', ''));
+  zaehlenMitLeuchten = (name) => lange(name);
+  const n9 = gesagt.length;
+  musterNeu();
+  await warte(400);
+  pruefe(!mu.gesperrt && spricht === 1, 'Während „Leg das Muster …“ gesperrt');
+  await schieben(los(mu.ziele[0].form), mu.ziele[0]);
+  pruefe(mu.ziele[0].belegt && spricht === 1, 'Während der Ansage nicht gelegt');
+  for (const z of mu.ziele.filter((x) => !x.belegt)) await schieben(los(z.form), z);
+  await bis(() => gesagt.slice(n9).includes('muster-voll-1'), 6000);
+  pruefe(gesagt.slice(n9, n9 + 2).join() === 'muster-nachlegen,muster-voll-1' && !zugleich, `Nacheinander: ${gesagt.slice(n9)}, zugleich ${zugleich}`);
+  folgeAbspielen = echt;
+  zaehlenMitLeuchten = echtZ;
+  await bis(() => !mu.offen, 4000);
+
   // Ansicht: Runde 5 (ABC), das passende Teil leuchtet
   musterStoppen();
   mu.runde = 4;

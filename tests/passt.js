@@ -196,6 +196,34 @@
   pruefe(pa.umfahren && pa.umfahren.form === 'kreis', 'Kurzfassung: Kreis wird nicht umfahren');
   zustand.kurz = false;
 
+  // 12. Schieben schon während der Ansage; Ansagen kommen nacheinander, nie übereinander
+  const echt = folgeAbspielen;
+  let spricht = 0, zugleich = false;
+  folgeAbspielen = async (folge) => {
+    if (spricht) zugleich = true;
+    spricht++;
+    gesagt.push(...folge.map((q) => q.url.replace('audio/ansage-', '').replace('.wav', '')));
+    await warte(900);
+    spricht--;
+  };
+  passtNeu();
+  passtStoppen();
+  pa.runde = 1;
+  paRundenZeichnen();
+  const n12 = gesagt.length;
+  passtNeueRunde();
+  await warte(50);
+  pruefe(!pa.gesperrt && spricht === 1, 'Während „Schieb sie hinein!“ gesperrt');
+  const t12 = pa.teile[0];
+  await schieben(t12, mitte(mulde(t12.form).el));
+  pruefe(t12.drin && spricht === 1, `Während der Ansage nicht eingesetzt (drin ${!!t12.drin}, spricht ${spricht})`);
+  for (const t of pa.teile.filter((x) => !x.drin)) await schieben(t, mitte(mulde(t.form).el));
+  await bis(() => gesagt.slice(n12).includes('passt-fertig'), 6000);
+  pruefe(gesagt.slice(n12, n12 + 2).join() === 'passt-start,passt-fertig', `Reihenfolge: ${gesagt.slice(n12)}`);
+  pruefe(!zugleich, 'Zwei Ansagen gleichzeitig');
+  folgeAbspielen = echt;
+  await bis(() => !pa.offen, 4000);
+
   // Ansicht: Runde 3, ein Einsatz drin
   passtNeu();
   passtStoppen();

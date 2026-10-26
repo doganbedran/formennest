@@ -138,6 +138,18 @@
   MUSTER_ZEIT.hilfe = 12000;
   pruefe(mu.runde === 2, '3. Erinnerung: App legt nicht selbst');
 
+  // 8. Kurzfassung (je Kind): nur nachlegen, dann der Auftrag
+  zustand.kurz = true;
+  const n8 = gesagt.length;
+  musterNeu();
+  await bis(() => gesagt.length > n8 && !mu.gesperrt);
+  pruefe(document.querySelectorAll('#muster-runden .gruppe span').length === 1, 'Kurzfassung: nicht ein Runden-Punkt');
+  for (const z of mu.ziele) await schieben(los(z.form), z);
+  await bis(() => mu.inEcht, 4000);
+  pruefe(mu.inEcht && mu.runde === 1, `Kurzfassung: kein Auftrag nach dem Nachlegen (Runde ${mu.runde})`);
+  zustand.kurz = false;
+  musterNeu();
+
   // Ansicht: Runde 5 (ABC), das passende Teil leuchtet
   musterStoppen();
   mu.runde = 4;

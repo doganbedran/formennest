@@ -61,6 +61,11 @@
   [...document.querySelectorAll('#kind-spiele .regal-spiel')].find((b) => b.textContent.includes('probe2')).click();
   await bis(() => regalVon(kinder.find((k) => k.name === 'Emil').spieleAus).includes('probe2'));
   pruefe(regalVon(kinder.find((k) => k.name === 'Emil').spieleAus).includes('probe2'), 'Regal je Kind nicht gespeichert');
+  // Kurzfassung je Kind
+  pruefe(!$('#kind-kurz').checked, 'Kurzfassung bei neuem Kind schon an');
+  $('#kind-kurz').click();
+  await bis(() => kinder.find((k) => k.name === 'Emil').kurz === true);
+  pruefe(kinder.find((k) => k.name === 'Emil').kurz === true, 'Kurzfassung je Kind nicht gespeichert');
   history.back();
   await bis(() => aktiv('eltern'));
 
@@ -74,6 +79,7 @@
   [...document.querySelectorAll('#wer .wer-kachel')].find((b) => b.textContent.includes('Emil')).click();
   pruefe(aktiv('home') && zustand.kind === emil.id && $('#btn-kind').textContent === emil.tier, 'Emil nicht gewählt');
   pruefe(zustand.spiele.includes('probe2') && !$('#home .spiel-btn[data-spiel="probe2"]').hidden, 'Emils Regal nicht aktiv');
+  pruefe(zustand.kurz === true, 'Emils Kurzfassung nicht aktiv');
 
   // 6. Kind löschen → andere bleiben; aktives Kind fällt auf ein vorhandenes zurück
   elternOeffnen();

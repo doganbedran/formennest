@@ -89,6 +89,20 @@
   pruefe(reihen8 === 3 && knopf('k').classList.contains('hinweis'), `Ohne Antwort: ${reihen8}× vorgespielt, Hinweis ${knopf('k').classList.contains('hinweis')}`);
   KLATSCH_ZEIT.nochmal = 6000;
 
+  // 9. Kurzfassung (je Kind): nur die zwei leichten Runden, dann der Auftrag
+  zustand.kurz = true;
+  const n9 = gesagt.length;
+  klatschNeu();
+  await bis(() => gesagt.length > n9 && !kl.gesperrt);
+  pruefe(document.querySelectorAll('#klatsch-runden .gruppe span').length === 2, 'Kurzfassung: nicht zwei Runden-Punkte');
+  await tipp('k');
+  await bis(() => kl.runde === 1 && !kl.gesperrt);
+  await tipp('s');
+  await bis(() => kl.inEcht, 4000);
+  pruefe(kl.inEcht && kl.runde === 2, `Kurzfassung: kein Auftrag nach zwei Runden (Runde ${kl.runde})`);
+  zustand.kurz = false;
+  klatschNeu();
+
   klatschStoppen();
   kl.runde = 2;
   klRundenZeichnen();

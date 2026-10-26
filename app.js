@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -161,7 +161,7 @@ const SPIEL_INFO = {
   maus: 'Lagewörter auf, in, unter: die Maus an die Kiste setzen (ab 3)',
   formen: 'Kreis, Quadrat und Dreieck benennen und wiedererkennen, auch gedreht (ab 3½)',
   klatsch: 'Ein Muster aus Klatschen und Stampfen fortsetzen – kein Takt, nur die Reihenfolge (ab 3½)',
-  muster: 'Muster aus Formen nachlegen und weiterlegen: AB, AAB, ABB, ABC (ab 4; mit 3 die erste Runde)',
+  muster: 'Muster aus Formen nachlegen und weiterlegen: AB, AAB, ABB, ABC (ab 4; kurz: nur nachlegen)',
 };
 // Fertige Spiele: id -> Startfunktion. Was hier fehlt, erscheint weder auf der Startseite noch im Regal.
 const SPIELE = {};
@@ -181,7 +181,7 @@ function einstellungenLaden() {
 }
 
 // Schalter einzelner Spiele (je Kind, ohne Kinder app-weit): Name = Feld beim Kind, Schlüssel fn:<Name>, data-option
-const SPIEL_OPTIONEN = [];
+const SPIEL_OPTIONEN = ['kurz'];
 // Standard „an“ (sonst aus)
 const SPIEL_STANDARD = {};
 const optionStandard = (o) => !!SPIEL_STANDARD[o];
@@ -1413,9 +1413,12 @@ function formBildSvg(d, farbe = FORMEN_FARBE) {
     + d.ecken.map(([x, y]) => `<circle class="ecke" cx="${x}" cy="${y}" r="9"/>`).join('') + '</g></svg>';
 }
 
+// Kurzfassung (eher mit 3): ohne „Auch das ist ein …“
+const foStufen = () => (zustand.kurz ? FORMEN_STUFEN.slice(0, 3) : FORMEN_STUFEN);
+
 function foRundenZeichnen() {
   let n = 0;
-  $('#formen-runden').innerHTML = FORMEN_STUFEN.map((anzahl) => `<span class="gruppe">${
+  $('#formen-runden').innerHTML = foStufen().map((anzahl) => `<span class="gruppe">${
     Array.from({ length: anzahl }, () => `<span class="${n++ < fo.punkte ? 'voll' : ''}"></span>`).join('')}</span>`).join('');
 }
 
@@ -1596,6 +1599,7 @@ async function foNaechsteStufe() {
   const nr = fo.nummer;
   glockenspiel();
   fo.stufe++;
+  if (fo.stufe === foStufen().length) fo.stufe = FORMEN_STUFEN.length;   // Kurzfassung: gleich zum Auftrag
   fo.schritt = 0;
   if (fo.stufe === 1) fo.auftraege = foAuftraege();
   if (fo.stufe === 2) fo.auftraege = mischen(PASST_FORMEN);
@@ -1683,9 +1687,12 @@ function klatschStoppen() {
   klBausteine.stoppen();
 }
 
+// Kurzfassung (eher mit 3): nur die beiden leichten Runden (AB, BA)
+const klRundenZahl = () => (zustand.kurz ? 2 : KLATSCH_RUNDEN.length);
+
 function klRundenZeichnen() {
   $('#klatsch-runden').innerHTML = `<span class="gruppe">${
-    KLATSCH_RUNDEN.map((_, i) => `<span class="${i < kl.runde ? 'voll' : ''}"></span>`).join('')}</span>`;
+    KLATSCH_RUNDEN.slice(0, klRundenZahl()).map((_, i) => `<span class="${i < kl.runde ? 'voll' : ''}"></span>`).join('')}</span>`;
 }
 
 // Klänge: Klatschen = kurzes Rauschen, Stampfen = tiefer, dumpfer Schlag
@@ -1819,7 +1826,7 @@ async function klRichtig(nr) {
   if (!klAktuell(nr)) return false;
   kl.runde++;
   klRundenZeichnen();
-  if (kl.runde < KLATSCH_RUNDEN.length) klatschNeueRunde(); else klatschAuftrag();
+  if (kl.runde < klRundenZahl()) klatschNeueRunde(); else klatschAuftrag();
   return true;
 }
 
@@ -1877,7 +1884,7 @@ $('#btn-klatsch-laut').addEventListener('click', () => {
   klFragen(kl.nummer);
 });
 
-// ---------- Muster legen (ab 4; mit 3 nur Runde 1): ein gelegtes Muster nachlegen und fortsetzen ----------
+// ---------- Muster legen (ab 4; Kurzfassung: nur Runde 1): ein gelegtes Muster nachlegen und fortsetzen ----------
 // Teile unterscheiden sich in Form UND Helligkeit (dunkler Kreis, helles Dreieck, mittleres Quadrat), alle gleich groß,
 // gleicher Abstand. Runde 1: nachlegen (die Vorlage ● ▲ ● ▲ oben, darunter legen); ab Runde 2 weiterlegen
 // (● ▲ ● ▲ ● ⬜ – „Kreis, Dreieck, Kreis, Dreieck, Kreis. Und dann?“), dann AAB, ABB, ABC. Ein unpassendes Teil gleitet in den
@@ -1911,9 +1918,12 @@ function musterSvg(form) {
   return '<svg viewBox="-12 -12 124 124" aria-hidden="true"><path d="M50 -2.9 L101 85.4 L-1 85.4 Z" fill="#fff3c4" stroke="#4a3f35" stroke-width="4" stroke-linejoin="round"/></svg>';
 }
 
+// Kurzfassung (eher mit 3): nur nachlegen
+const muRundenZahl = () => (zustand.kurz ? 1 : MUSTER_RUNDEN.length);
+
 function muRundenZeichnen() {
   $('#muster-runden').innerHTML = `<span class="gruppe">${
-    MUSTER_RUNDEN.map((_, i) => `<span class="${i < mu.runde ? 'voll' : ''}"></span>`).join('')}</span>`;
+    MUSTER_RUNDEN.slice(0, muRundenZahl()).map((_, i) => `<span class="${i < mu.runde ? 'voll' : ''}"></span>`).join('')}</span>`;
 }
 
 function muMasse() {
@@ -2124,7 +2134,7 @@ async function muLegen(t, ziel) {
   if (!muAktuell(nr)) return;
   mu.runde++;
   muRundenZeichnen();
-  if (mu.runde < MUSTER_RUNDEN.length) musterNeueRunde(); else musterAuftrag();
+  if (mu.runde < muRundenZahl()) musterNeueRunde(); else musterAuftrag();
 }
 
 function muKlick() {

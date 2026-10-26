@@ -87,6 +87,18 @@
   await bis(() => $('#formen .spiel-ende') && !$('#formen .spiel-ende').hidden);
   pruefe(zuletzt() === `formen-gefunden-${fo.welt}`, `Schluss: ${zuletzt()}`);
 
+  // 6. Kurzfassung (je Kind): drei Gruppen, nach „Sag es“ gleich der Auftrag (ohne 🔍)
+  zustand.kurz = true;
+  formenStoppen();
+  Object.assign(fo, { stufe: 2, schritt: 0, fertig: false, inEcht: false });
+  foRundenZeichnen();
+  pruefe($('#formen-runden').children.length === 3, 'Kurzfassung: nicht drei Gruppen');
+  const n6 = gesagt.length;
+  foNaechsteStufe();
+  await bis(() => fo.inEcht, 4000);
+  pruefe(fo.inEcht && !gesagt.slice(n6).some((g) => g.startsWith('formen-auch-')), `Kurzfassung: ${gesagt.slice(n6)}`);
+  zustand.kurz = false;
+
   // Ansicht: Stufe 2, drei Karten, das Dreieck zeigt seine Ecken
   $('#formen .ende-nochmal').click();
   formenStoppen();

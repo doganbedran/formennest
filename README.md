@@ -33,13 +33,17 @@ hinzufügen“. Elternbereich: ⚙️ oben rechts 2 Sekunden halten. Fragen und 
   nochmal, dann leuchtet der passende Knopf, dann setzt die App ihn ein. Kein Takt, kein Tempo. Vier Runden: AB, BA,
   AAB, ABB. Zum Schluss klatscht und stampft das Kind selbst.
 
-- 🔺 **Muster legen** (ab 4; mit 3 die erste Runde) – Teile unterscheiden sich in Form und Helligkeit (dunkler Kreis,
+- 🔺 **Muster legen** (ab 4; Kurzfassung: nur nachlegen) – Teile unterscheiden sich in Form und Helligkeit (dunkler Kreis,
   helles Dreieck, mittleres Quadrat). Runde 1: das Muster ● ▲ ● ▲ genauso darunter legen; ab Runde 2 weiterlegen
   („Kreis, Dreieck, Kreis, Dreieck, Kreis. Und dann?“): AB, AAB, ABB, ABC. Ein unpassendes Teil gleitet zurück (sonst wäre
   das Muster kaputt), dann leuchtet das passende, dann legt die App es. Zum Schluss: „Leg ein Muster mit echten Dingen:
   Löffel, Becher, Löffel, Becher!“
 
 Jede Runde endet mit einer kleinen Aufgabe in der echten Welt; ein Erwachsener hält dann 👍 gedrückt.
+
+Schiebt das Kind nicht (nur Antippen oder lange nichts), zeigt eine Hand ☝️ das Schieben; nach der dritten Erinnerung
+setzt die App das Teil selbst ein. Im Elternbereich gibt es je Kind eine **Kurzfassung** (eher mit 3): „Muster legen“
+nur nachlegen, „Zeig mir den Kreis“ ohne 🔍, „Klatsch – Stampf“ nur die zwei leichten Runden.
 
 ## Daten neben Wortnest und Zahlennest
 Alle drei Apps liegen unter `doganbedran.github.io` und teilen sich damit den Browser-Speicher. Formennest nutzt darum

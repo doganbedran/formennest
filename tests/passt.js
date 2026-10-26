@@ -111,6 +111,34 @@
   const daneben = k2.drin ? Math.round(Math.hypot(k2.x - k2.drin.x, k2.y - k2.drin.y)) : 0;
   pruefe(!pa.ziehen && daneben < 2, `Festgehalten beim Selbst-Einsetzen: zählt als drin, liegt aber ${daneben} px neben der Mulde`);
 
+  // 9. Hand: zweimal nur angetippt → die Hand schiebt den Einsatz ein Stück zur Mulde und wieder zurück;
+  // lange nichts versucht: 1. Erinnerung hüpft, 2. Hand, 3. die App setzt selbst ein
+  passtNeu();
+  passtStoppen();
+  paRundenZeichnen();
+  passtNeueRunde();
+  await bis(() => !pa.gesperrt);
+  const t9 = pa.teile[0], m9 = mulde(t9.form);
+  const antippen = async (t) => { await warte(350); const p = mitte(t.el); ev(t.el, 'pointerdown', p); ev(document, 'pointerup', p); await warte(30); };
+  await antippen(t9);
+  pruefe(!$('#passt-feld .zeige-hand'), '1. Antippen: schon die Hand');
+  await antippen(t9);
+  pruefe($('#passt-feld .zeige-hand') && pa.gesperrt, '2. Antippen: keine Hand');
+  const start9 = [t9.x, t9.y];
+  await warte(900);
+  pruefe(Math.hypot(t9.x - m9.x, t9.y - m9.y) < Math.hypot(start9[0] - m9.x, start9[1] - m9.y) - 20, 'Hand schiebt den Einsatz nicht zur Mulde');
+  await bis(() => !$('#passt-feld .zeige-hand') && !pa.gesperrt);
+  pruefe(!t9.drin && t9.x === start9[0] && t9.y === start9[1], 'Nach der Hand nicht zurück');
+  const n9 = gesagt.length;
+  PASST_ZEIT.hilfe = 150;
+  paHilfeAbwarten(pa.nummer);
+  await bis(() => $('#passt-feld .zeige-hand'), 4000);
+  pruefe(pa.hilfen === 2, `Hand nicht bei der 2. Erinnerung (${pa.hilfen})`);
+  await bis(() => pa.teile.some((t) => t.drin), 6000);
+  PASST_ZEIT.hilfe = 12000;
+  const hilfen9 = gesagt.slice(n9).filter((g) => g === 'passt-hilfe').length;
+  pruefe(pa.teile.filter((t) => t.drin).length === 1 && hilfen9 === 3, `3. Erinnerung: nicht selbst eingesetzt (${hilfen9} Erinnerungen)`);
+
   // Ansicht: Runde 3, ein Einsatz drin
   passtNeu();
   passtStoppen();

@@ -115,6 +115,29 @@
   await bis(() => mu.runde === 1, 3000);
   pruefe(mu.runde === 1, `Schnell nach 3. Versuch: Runde bleibt hängen (frei: ${mu.ziele.filter((x) => !x.belegt).map((x) => x.form)}, Vorrat: ${mu.teile.filter((t) => !t.drin).map((t) => t.form)})`);
 
+  // 7. Hand: zweimal nur angetippt → die Hand schiebt das Teil ein Stück zur Lücke und zurück;
+  // lange nichts versucht: 2. Erinnerung Hand, 3. die App legt selbst
+  musterStoppen();
+  mu.runde = 1;
+  muRundenZeichnen();
+  musterNeueRunde();
+  await bereit();
+  const t7 = los(mu.ziele[0].form);
+  const antippen = async (t) => { await warte(350); const p = mitte(t.el); ev(t.el, 'pointerdown', p); ev(document, 'pointerup', p); await warte(30); };
+  await antippen(t7);
+  pruefe(!$('#muster-feld .zeige-hand'), '1. Antippen: schon die Hand');
+  await antippen(t7);
+  pruefe($('#muster-feld .zeige-hand') && mu.gesperrt, '2. Antippen: keine Hand');
+  await bis(() => !$('#muster-feld .zeige-hand') && !mu.gesperrt);
+  pruefe(!t7.drin && t7.x === t7.heim[0] && t7.y === t7.heim[1], 'Nach der Hand nicht zurück');
+  MUSTER_ZEIT.hilfe = 150;
+  muHilfeAbwarten(mu.nummer);
+  await bis(() => $('#muster-feld .zeige-hand'), 4000);
+  pruefe(mu.hilfen === 2, `Hand nicht bei der 2. Erinnerung (${mu.hilfen})`);
+  await bis(() => mu.runde === 2, 6000);
+  MUSTER_ZEIT.hilfe = 12000;
+  pruefe(mu.runde === 2, '3. Erinnerung: App legt nicht selbst');
+
   // Ansicht: Runde 5 (ABC), das passende Teil leuchtet
   musterStoppen();
   mu.runde = 4;

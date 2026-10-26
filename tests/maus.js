@@ -95,6 +95,28 @@
   const teile = [$('#maus-feld .kiste-vorn'), ...MAUS_LAGEN.map((l) => msPlatzEl(l))].map((el) => el.getBoundingClientRect());
   pruefe(teile.every((r) => r.left >= feldR.left - 1 && r.right <= feldR.right + 1 && r.top >= feldR.top - 1 && r.bottom <= feldR.bottom + 1), 'Etwas ragt heraus');
 
+  // 7. Hand: zweimal nur angetippt → die Hand schiebt die Maus ein Stück zum Platz und zurück;
+  // lange nichts versucht: 1. Platz leuchtet, 2. Hand, 3. die Maus läuft selbst hin
+  mausStoppen();
+  Object.assign(ms, { stufe: 1, schritt: 0, folge: ['unter', 'auf', 'in'] });
+  msStufe2();
+  await bereit(1);
+  const antippen = async () => { await warte(400); const p = mitte(ms.maus); ev(ms.maus, 'pointerdown', p); ev(document, 'pointerup', p); await warte(30); };
+  await antippen();
+  pruefe(!$('#maus-feld .zeige-hand'), '1. Antippen: schon die Hand');
+  await antippen();
+  pruefe($('#maus-feld .zeige-hand') && ms.gesperrt, '2. Antippen: keine Hand');
+  await bis(() => !$('#maus-feld .zeige-hand') && !ms.gesperrt);
+  pruefe(ms.lage === 'start' && ms.schritt === 0, 'Hand setzt die Maus ab');
+  const n7 = gesagt.length;
+  MAUS_ZEIT.nochmalFragen = 150;
+  msFragen(ms.nummer);
+  await bis(() => $('#maus-feld .zeige-hand'), 4000);
+  pruefe(ms.hilfen === 2, `Hand nicht bei der 2. Erinnerung (${ms.hilfen})`);
+  await bis(() => ms.schritt === 1, 6000);
+  MAUS_ZEIT.nochmalFragen = 8000;
+  pruefe(gesagt.slice(n7).includes('maus-ist-unter'), `3. Erinnerung: Maus läuft nicht selbst hin (${gesagt.slice(n7)})`);
+
   // Ansicht: Stufe 2, gesuchter Platz leuchtet
   mausStoppen();
   Object.assign(ms, { stufe: 1, schritt: 0, folge: ['unter', 'auf', 'in'] });

@@ -75,6 +75,20 @@
 
   // 7. Anordnung: Reihe und Knöpfe im Bild
   $('#klatsch .ende-nochmal').click();
+
+  // 8. Ohne Antwort: die Reihe höchstens zweimal wiederholt, danach leuchtet still der passende Knopf
+  KLATSCH_ZEIT.nochmal = 100;
+  klatschStoppen();
+  kl.runde = 0;
+  klRundenZeichnen();
+  const n8 = gesagt.length;
+  klatschNeueRunde();
+  await bis(() => knopf('k').classList.contains('hinweis'), 4000);
+  await warte(400);
+  const reihen8 = gesagt.slice(n8).filter((g) => g === 'klatsch-reihe-1').length;
+  pruefe(reihen8 === 3 && knopf('k').classList.contains('hinweis'), `Ohne Antwort: ${reihen8}× vorgespielt, Hinweis ${knopf('k').classList.contains('hinweis')}`);
+  KLATSCH_ZEIT.nochmal = 6000;
+
   klatschStoppen();
   kl.runde = 2;
   klRundenZeichnen();

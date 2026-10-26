@@ -367,6 +367,10 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .einsatz { transition: none; } .rund-finger { animation: none; } }
 
 /* ---------- Wo ist die Maus? Kiste in zwei Ebenen (hinten Inneres, vorn Wand/Deckel/Beine), Maus dazwischen ---------- */
+/* Hand zeigt das Schieben (Passt rein, Maus, Muster): Fingerspitze auf der Mitte des Teils */
+.zeige-hand { position: absolute; left: 0; top: 0; z-index: 6; font-size: 64px; line-height: 1; margin-left: -0.55em;
+  pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3)); transition: transform 0.85s ease-in-out; }
+
 #maus, .maus-feld { touch-action: none; overscroll-behavior: none; }
 .maus-feld { flex: 1; position: relative; min-height: 0; }
 .kiste-hinten, .kiste-vorn { position: absolute; display: block; overflow: visible; }

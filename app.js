@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -665,6 +665,27 @@ function animieren(el, klasse) {
   el.classList.add(klasse);
 }
 
+// Eine Hand ☝️ zeigt das Schieben: fährt mit dem Teil ein Stück zum Ziel und wieder zurück (kein Einsetzen)
+const HAND_ZEIT = 850;
+async function handZeigen(feld, el, [x1, y1], [x2, y2], setzen, aktuell) {
+  const hand = document.createElement('div');
+  hand.className = 'zeige-hand';
+  hand.textContent = '☝️';
+  const nach = (x, y) => { hand.style.transform = `translate(${x}px, ${y}px)`; };
+  nach(x1, y1);
+  feld.appendChild(hand);
+  await warten(400);
+  el.style.transition = `transform ${HAND_ZEIT}ms ease-in-out`;
+  for (const [x, y] of [[x1 + (x2 - x1) * 0.7, y1 + (y2 - y1) * 0.7], [x1, y1]]) {
+    if (!aktuell()) break;
+    nach(x, y);
+    setzen(x, y);
+    await warten(HAND_ZEIT + 150);
+  }
+  el.style.transition = '';
+  hand.remove();
+}
+
 // ---------- Passt rein (ab 3): Formen einsetzen – wie die erste Lade der Geometrischen Kommode ----------
 // Oben ein Brett mit drei Mulden (Kreis, Quadrat, Dreieck), unten die Einsätze: gleiche Farbe, etwa gleiche Fläche
 // (sonst sortiert das Kind nach Farbe oder Größe statt nach Form). Ein Einsatz rastet nur in seiner Mulde ein
@@ -678,7 +699,7 @@ const PASST_FORMEN = ['kreis', 'quadrat', 'dreieck'];
 // Drehung der Mulden in Runde 3 (Grad)
 const PASST_DREHUNG = { kreis: 0, quadrat: 12, dreieck: 28 };
 const pa = { runde: 0, mulden: [], teile: [], ziehen: null, gesperrt: true, timer: null, nummer: 0, fertig: false,
-  inEcht: false, auftrag: false, mass: null, versuche: {} };
+  inEcht: false, auftrag: false, mass: null, versuche: {}, hilfen: 0, tipps: 0 };
 const paBausteine = spielBausteine('passt', pa);
 const { aktuell: paAktuell, ansage: paAnsage } = paBausteine;
 SPIEL_STOPPEN.push(() => passtStoppen());
@@ -752,6 +773,8 @@ async function passtNeueRunde() {
   let teilFolge;
   do teilFolge = mischen(PASST_FORMEN); while (teilFolge.some((f, i) => f === muldenFolge[i]));
   pa.versuche = {};
+  pa.hilfen = 0;
+  pa.tipps = 0;
   pa.mulden = muldenFolge.map((form) => {
     const el = document.createElement('div');
     el.className = 'mulde';
@@ -780,18 +803,30 @@ async function passtNeueRunde() {
   paHilfeAbwarten(nr);
 }
 
-// Lange nichts eingesetzt: Auftrag nochmal, ein loser Einsatz hüpft (kein Zeitdruck)
+// Lange nichts versucht: Auftrag nochmal, ein loser Einsatz hüpft; beim 2. Mal zeigt die Hand das Schieben,
+// beim 3. Mal setzt die App ihn selbst ein (kein Zeitdruck – es geht nur weiter)
 function paHilfeAbwarten(nr) {
   clearTimeout(pa.timer);
   pa.timer = setTimeout(async () => {
     if (!paAktuell(nr) || pa.gesperrt || pa.ziehen) { paHilfeAbwarten(nr); return; }
     pa.gesperrt = true;
     if (!(await paAnsage(nr, 'passt-hilfe'))) return;
-    pa.gesperrt = false;
     const los = pa.teile.find((t) => !t.drin);
-    if (los) animieren(los.el, 'huepft');
+    pa.hilfen++;
+    if (los && pa.hilfen >= 3) { pa.gesperrt = false; paEinsetzen(los, pa.mulden.find((m) => m.form === los.form)); return; }
+    if (los && pa.hilfen === 2) await paHandVormachen(nr, los);
+    else if (los) animieren(los.el, 'huepft');
+    if (!paAktuell(nr)) return;
+    pa.gesperrt = false;
     paHilfeAbwarten(nr);
   }, PASST_ZEIT.hilfe);
+}
+
+async function paHandVormachen(nr, t) {
+  const m = pa.mulden.find((x) => x.form === t.form);
+  pa.gesperrt = true;
+  await handZeigen($('#passt-feld'), t.el, [t.x, t.y], [m.x, m.y], (x, y) => paSetzen(t, x, y), () => paAktuell(nr));
+  if (paAktuell(nr)) pa.gesperrt = false;
 }
 
 $('#passt-feld').addEventListener('pointerdown', (e) => {
@@ -827,7 +862,13 @@ function paLoslassen(e) {
   pa.ziehen = null;
   z.t.el.classList.remove('greift');
   if (z.nr !== pa.nummer || !paAktuell(z.nr)) return;
-  if (!z.bewegt) { animieren(z.t.el, 'huepft'); return; }
+  // Nur getippt: hüpft; beim 2. Mal zeigt die Hand, dass man schieben muss
+  if (!z.bewegt) {
+    if (++pa.tipps < 2) animieren(z.t.el, 'huepft');
+    else { pa.tipps = 0; paHandVormachen(z.nr, z.t); }
+    return;
+  }
+  pa.hilfen = 0;
   const { S } = pa.mass;
   const naechste = pa.mulden.map((m) => ({ m, a: Math.hypot(m.x - z.t.x, m.y - z.t.y) })).sort((a, b) => a.a - b.a)[0];
   if (naechste.a > S * 0.6) { paVomBrett(z.t); return; }
@@ -862,6 +903,8 @@ async function paEinsetzen(t, m) {
   const nr = pa.nummer;
   t.drin = m;
   m.belegt = true;
+  pa.hilfen = 0;
+  pa.tipps = 0;
   m.el.classList.remove('hinweis');
   t.el.classList.add('drin');
   t.el.querySelector('.einsatz-bild').style.transform = `rotate(${m.drehung}deg)`;
@@ -970,7 +1013,8 @@ const MAUS_STUFEN = [3, 3, 3];
 const MAUS_SYMBOL = ['👀', '👂', '🗣️'];
 const MAUS_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 9000, antwort: 5000, pause: 900, daumen: 6000, auftragNochmal: 16000 };
 const ms = { stufe: 0, schritt: 0, punkte: 0, folge: [], ziel: null, lage: 'start', versuche: 0, ziehen: null,
-  gesperrt: true, timer: null, nummer: 0, fertig: false, inEcht: false, auftrag: false, mass: null, welt: 'unter' };
+  gesperrt: true, timer: null, nummer: 0, fertig: false, inEcht: false, auftrag: false, mass: null, welt: 'unter',
+  hilfen: 0, tipps: 0 };
 const msBausteine = spielBausteine('maus', ms);
 const { aktuell: msAktuell, ansage: msAnsage } = msBausteine;
 SPIEL_STOPPEN.push(() => mausStoppen());
@@ -1096,6 +1140,8 @@ async function msStufe2() {
   const nr = ms.nummer;
   ms.ziel = ms.folge[ms.schritt];
   ms.versuche = 0;
+  ms.hilfen = 0;
+  ms.tipps = 0;
   document.querySelectorAll('#maus-feld .platz').forEach((p) => p.classList.remove('hinweis'));
   ms.lage = 'start';
   msMausAufPlatz();
@@ -1108,15 +1154,37 @@ async function msFragen(nr) {
   if (!msAktuell(nr)) return;
   ms.gesperrt = true;
   if (!(await msAnsage(nr, `maus-setz-${ms.ziel}`))) return;
+  // Lange nichts versucht: 1. Platz leuchtet, 2. die Hand zeigt das Schieben, 3. die Maus läuft selbst hin
+  if (ms.hilfen >= 3) { await warten(300); if (msAktuell(nr)) msSelbstSetzen(nr); return; }
+  if (ms.hilfen === 2) await msHandVormachen(nr);
+  if (!msAktuell(nr)) return;
   ms.gesperrt = false;
   clearTimeout(ms.timer);
   ms.timer = setTimeout(function nachfragen() {
     if (!msAktuell(nr)) return;
     // Hält das Kind die Maus gerade: später nochmal (die Hilfe fällt nicht aus)
     if (ms.gesperrt || ms.ziehen) { ms.timer = setTimeout(nachfragen, 1000); return; }
+    ms.hilfen++;
     msPlatzEl(ms.ziel).classList.add('hinweis');
     msFragen(nr);
   }, MAUS_ZEIT.nochmalFragen);
+}
+
+async function msHandVormachen(nr) {
+  ms.gesperrt = true;
+  ms.maus.classList.remove('drin');
+  await handZeigen($('#maus-feld'), ms.maus, ms.mass.plaetze[ms.lage], ms.mass.plaetze[ms.ziel], msMausSetzen, () => msAktuell(nr));
+  if (!msAktuell(nr)) return;
+  msMausAufPlatz();
+  ms.gesperrt = false;
+}
+
+async function msSelbstSetzen(nr) {
+  msHuschen(ms.ziel);
+  msPlatzEl(ms.ziel).classList.remove('hinweis');
+  if (!(await msAnsage(nr, `maus-ist-${ms.ziel}`))) return;
+  await warten(MAUS_ZEIT.pause);
+  msWeiter(nr);
 }
 
 // Stufe 3: Maus sitzt, „Wo ist die Maus? Sag es!“ – nach einer Weile sagt die App es selbst (keine Prüfung)
@@ -1171,7 +1239,13 @@ function msLoslassen(e) {
   ms.ziehen = null;
   ms.maus.classList.remove('greift');
   if (z.nr !== ms.nummer || !msAktuell(z.nr)) return;
-  if (!z.bewegt) { msMausAufPlatz(); animieren(ms.maus, 'huepft'); return; }
+  if (!z.bewegt) {
+    msMausAufPlatz();
+    if (++ms.tipps < 2) animieren(ms.maus, 'huepft');
+    else { ms.tipps = 0; msHandVormachen(z.nr); }
+    return;
+  }
+  ms.hilfen = 0;
   const x = Number(ms.maus.dataset.x), y = Number(ms.maus.dataset.y);
   const naechste = MAUS_LAGEN.map((l) => ({ l, a: Math.hypot(ms.mass.plaetze[l][0] - x, ms.mass.plaetze[l][1] - y) })).sort((a, b) => a.a - b.a)[0];
   // Weit weg von allen Plätzen: zurück neben die Kiste
@@ -1203,12 +1277,7 @@ async function msGesetzt(nr) {
   if (ms.versuche === 2) msPlatzEl(ms.ziel).classList.add('hinweis');
   if (ms.versuche >= 3) {
     await warten(300);
-    if (!msAktuell(nr)) return;
-    msHuschen(ms.ziel);
-    msPlatzEl(ms.ziel).classList.remove('hinweis');
-    if (!(await msAnsage(nr, `maus-ist-${ms.ziel}`))) return;
-    await warten(MAUS_ZEIT.pause);
-    msWeiter(nr);
+    if (msAktuell(nr)) msSelbstSetzen(nr);
     return;
   }
   await warten(300);
@@ -1604,7 +1673,7 @@ const KLATSCH_RUNDEN = [
 ];
 const KLATSCH_BILD = { k: '👏', s: '🦶' };
 const KLATSCH_ZEIT = { nochmal: 9000, pause: 700, daumen: 6000, auftragNochmal: 16000 };
-const kl = { runde: 0, versuche: 0, gesperrt: true, timer: null, nummer: 0, letzterTipp: -Infinity, fertig: false, inEcht: false, auftrag: false };
+const kl = { runde: 0, versuche: 0, wiederholt: 0, gesperrt: true, timer: null, nummer: 0, letzterTipp: -Infinity, fertig: false, inEcht: false, auftrag: false };
 const klBausteine = spielBausteine('klatsch', kl);
 const { aktuell: klAktuell, ansage: klAnsage, zaehlen: klZaehlen } = klBausteine;
 SPIEL_STOPPEN.push(() => klatschStoppen());
@@ -1672,6 +1741,7 @@ async function klatschNeueRunde() {
   klatschStoppen();
   const nr = kl.nummer;
   kl.versuche = 0;
+  kl.wiederholt = 0;
   klFeldAufbauen();
   await warten(400);
   if (!klAktuell(nr)) return;
@@ -1686,13 +1756,20 @@ async function klFragen(nr) {
   if (!(await klReiheVorspielen(nr, `klatsch-reihe-${kl.runde + 1}`, klBilder()))) return;
   kl.gesperrt = false;
   clearTimeout(kl.timer);
-  kl.timer = setTimeout(() => klAktuell(nr) && !kl.gesperrt && klFragen(nr), KLATSCH_ZEIT.nochmal);
+  // Ohne Antwort höchstens zweimal wiederholen, danach leuchtet nur noch der passende Knopf – still
+  kl.timer = setTimeout(() => {
+    if (!klAktuell(nr) || kl.gesperrt) return;
+    if (kl.wiederholt >= 2) { $(`#klatsch-feld .klatsch-knopf[data-art="${klRunde().fehlt}"]`).classList.add('hinweis'); return; }
+    kl.wiederholt++;
+    klFragen(nr);
+  }, KLATSCH_ZEIT.nochmal);
 }
 
 async function klGetippt(art, btn) {
   const jetzt = performance.now();
   if (kl.gesperrt || kl.auftrag || jetzt - kl.letzterTipp < 400) return;   // Doppeltipps zählen nicht
   kl.letzterTipp = jetzt;
+  kl.wiederholt = 0;
   audio();
   clearTimeout(kl.timer);
   const nr = kl.nummer;
@@ -1816,7 +1893,7 @@ const MUSTER_RUNDEN = [
 const MUSTER_WORT = { kreis: 'rund', dreieck: 'spitz', quadrat: 'eckig' };
 const MUSTER_ZEIT = { hilfe: 12000, pause: 700, daumen: 6000, auftragNochmal: 16000 };
 const mu = { runde: 0, ziele: [], teile: [], vorlage: [], ziehen: null, gesperrt: true, timer: null, nummer: 0,
-  versuche: 0, fertig: false, inEcht: false, auftrag: false, mass: null };
+  versuche: 0, fertig: false, inEcht: false, auftrag: false, mass: null, hilfen: 0, tipps: 0 };
 const muBausteine = spielBausteine('muster', mu);
 const { aktuell: muAktuell, ansage: muAnsage, zaehlen: muZaehlen } = muBausteine;
 SPIEL_STOPPEN.push(() => musterStoppen());
@@ -1935,13 +2012,30 @@ async function muFragen(nr) {
     mu.vorlage.forEach((v) => v.el.classList.remove('leuchtet'));
   }
   if (!ok) return;
+  // Lange nichts versucht: 2. Mal zeigt die Hand das Schieben, 3. Mal legt die App selbst
+  const frei = mu.ziele.find((x) => !x.belegt);
+  const passend = frei && mu.teile.find((x) => !x.drin && x.form === frei.form);
+  if (passend && mu.hilfen >= 3) { mu.gesperrt = false; muLegen(passend, frei); return; }
+  if (passend && mu.hilfen === 2) await muHandVormachen(nr, passend, frei);
+  if (!muAktuell(nr)) return;
   mu.gesperrt = false;
   muHilfeAbwarten(nr);
 }
 
 function muHilfeAbwarten(nr) {
   clearTimeout(mu.timer);
-  mu.timer = setTimeout(() => { if (muAktuell(nr) && !mu.gesperrt && !mu.ziehen) muFragen(nr); else if (muAktuell(nr)) muHilfeAbwarten(nr); }, MUSTER_ZEIT.hilfe);
+  mu.timer = setTimeout(() => {
+    if (!muAktuell(nr)) return;
+    if (mu.gesperrt || mu.ziehen) { muHilfeAbwarten(nr); return; }
+    mu.hilfen++;
+    muFragen(nr);
+  }, MUSTER_ZEIT.hilfe);
+}
+
+async function muHandVormachen(nr, t, ziel) {
+  mu.gesperrt = true;
+  await handZeigen($('#muster-feld'), t.el, [t.x, t.y], [ziel.x, ziel.y], (x, y) => muSetzen(t, x, y), () => muAktuell(nr));
+  if (muAktuell(nr)) mu.gesperrt = false;
 }
 
 $('#muster-feld').addEventListener('pointerdown', (e) => {
@@ -1968,7 +2062,14 @@ function muLoslassen(e) {
   mu.ziehen = null;
   z.t.el.classList.remove('greift');
   if (z.nr !== mu.nummer || !muAktuell(z.nr)) return;
-  if (!z.bewegt) { muSetzen(z.t, ...z.t.heim); animieren(z.t.el, 'huepft'); return; }
+  if (!z.bewegt) {
+    muSetzen(z.t, ...z.t.heim);
+    const frei = mu.ziele.find((x) => !x.belegt && x.form === z.t.form);
+    if (++mu.tipps < 2 || !frei) animieren(z.t.el, 'huepft');
+    else { mu.tipps = 0; muHandVormachen(z.nr, z.t, frei); }
+    return;
+  }
+  mu.hilfen = 0;
   const naechstes = mu.ziele.filter((x) => !x.belegt).map((x) => ({ x, a: Math.hypot(x.x - z.t.x, x.y - z.t.y) })).sort((a, b) => a.a - b.a)[0];
   if (!naechstes || naechstes.a > mu.mass.S * 0.9) { muSetzen(z.t, ...z.t.heim); return; }
   if (naechstes.x.form === z.t.form) { muLegen(z.t, naechstes.x); return; }
@@ -2002,6 +2103,8 @@ async function muLegen(t, ziel) {
   t.drin = ziel;
   ziel.belegt = true;
   mu.versuche = 0;
+  mu.hilfen = 0;
+  mu.tipps = 0;
   mu.teile.forEach((x) => x.el.classList.remove('hinweis'));
   t.el.classList.add('drin');
   muSetzen(t, ziel.x, ziel.y);

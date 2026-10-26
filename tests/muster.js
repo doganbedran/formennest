@@ -33,10 +33,10 @@
   const bereit = () => bis(() => !mu.gesperrt);
 
   // 1. Ansagen und Teile: Form UND Helligkeit verschieden
-  pruefe(ANSAGEN['muster-reihe-2'][0] === 'Spitz, rund, spitz, rund, spitz. Und dann?' && ANSAGEN['muster-voll-1'][0] === 'Rund, spitz, rund, spitz. Ein Muster!', 'Ansagen');
+  pruefe(ANSAGEN['muster-reihe-2'][0] === 'Dreieck, Kreis, Dreieck, Kreis, Dreieck. Und dann?' && ANSAGEN['muster-voll-1'][0] === 'Kreis, Dreieck, Kreis, Dreieck. Ein Muster!', 'Ansagen');
   const fuellung = (f) => new DOMParser().parseFromString(musterSvg(f), 'image/svg+xml').querySelector('[fill]').getAttribute('fill');
   pruefe(new Set(['kreis', 'dreieck', 'quadrat'].map(fuellung)).size === 3, 'Teile nicht verschieden hell');
-  pruefe(MUSTER_RUNDEN.every((r, i) => ANSAGEN[`muster-voll-${i + 1}`][0].split(/[,.]/).filter((w) => /rund|spitz|eckig/i.test(w)).length === r.reihe.length + (r.fehlt ? 1 : 0)), 'Reihe und Aufnahme passen nicht');
+  pruefe(MUSTER_RUNDEN.every((r, i) => ANSAGEN[`muster-voll-${i + 1}`][0].split(/[,.]/).filter((w) => /kreis|dreieck|quadrat/i.test(w)).length === r.reihe.length + (r.fehlt ? 1 : 0)), 'Reihe und Aufnahme passen nicht');
 
   // 2. Runde 1 nachlegen: vier Plätze unter der Vorlage, vier Teile
   speicher.schreiben('spieleAus', []);

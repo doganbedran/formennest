@@ -79,7 +79,7 @@ def synth_zaehlen(stimme, text, rate):
     stille = np.zeros(int(rate * ZAEHL_PAUSE), dtype=np.float32)
     teile = []
     for i, satz in enumerate(saetze):
-        teil = satz_sprechen(stimme, satz, rate, ZAEHL_TEMPO)
+        teil = satz_sprechen(stimme, satz, rate, max(ZAEHL_TEMPO, tempo_fuer(satz)))
         teile += [stille, teil] if i else [teil]
     return np.concatenate(teile) if teile else np.zeros(0, dtype=np.float32)
 

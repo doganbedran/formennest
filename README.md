@@ -35,7 +35,7 @@ hinzufügen“. Elternbereich: ⚙️ oben rechts 2 Sekunden halten. Fragen und 
 
 - 🔺 **Muster legen** (ab 4; mit 3 die erste Runde) – Teile unterscheiden sich in Form und Helligkeit (dunkler Kreis,
   helles Dreieck, mittleres Quadrat). Runde 1: das Muster ● ▲ ● ▲ genauso darunter legen; ab Runde 2 weiterlegen
-  („Rund, spitz, rund, spitz, rund. Und dann?“): AB, AAB, ABB, ABC. Ein unpassendes Teil gleitet zurück (sonst wäre
+  („Kreis, Dreieck, Kreis, Dreieck, Kreis. Und dann?“): AB, AAB, ABB, ABC. Ein unpassendes Teil gleitet zurück (sonst wäre
   das Muster kaputt), dann leuchtet das passende, dann legt die App es. Zum Schluss: „Leg ein Muster mit echten Dingen:
   Löffel, Becher, Löffel, Becher!“
 

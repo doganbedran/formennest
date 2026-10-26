@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 10;
+const APP_VERSION = 11;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -1880,7 +1880,7 @@ $('#btn-klatsch-laut').addEventListener('click', () => {
 // ---------- Muster legen (ab 4; mit 3 nur Runde 1): ein gelegtes Muster nachlegen und fortsetzen ----------
 // Teile unterscheiden sich in Form UND Helligkeit (dunkler Kreis, helles Dreieck, mittleres Quadrat), alle gleich groß,
 // gleicher Abstand. Runde 1: nachlegen (die Vorlage ● ▲ ● ▲ oben, darunter legen); ab Runde 2 weiterlegen
-// (● ▲ ● ▲ ● ⬜ – „Rund, spitz, rund, spitz, rund. Und dann?“), dann AAB, ABB, ABC. Ein unpassendes Teil gleitet in den
+// (● ▲ ● ▲ ● ⬜ – „Kreis, Dreieck, Kreis, Dreieck, Kreis. Und dann?“), dann AAB, ABB, ABC. Ein unpassendes Teil gleitet in den
 // Vorrat zurück (ein falsches Teil in der Kette zerstörte das Muster) und die Reihe kommt nochmal; 2. Mal: das
 // passende Teil leuchtet; 3. Mal: die App legt es. Zum Schluss in echt: „Leg ein Muster: Löffel, Becher, …“
 const MUSTER_RUNDEN = [
@@ -1890,7 +1890,7 @@ const MUSTER_RUNDEN = [
   { art: 'weiter', reihe: ['kreis', 'dreieck', 'dreieck', 'kreis', 'dreieck'], fehlt: 'dreieck' },
   { art: 'weiter', reihe: ['kreis', 'dreieck', 'quadrat', 'kreis', 'dreieck'], fehlt: 'quadrat' },
 ];
-const MUSTER_WORT = { kreis: 'rund', dreieck: 'spitz', quadrat: 'eckig' };
+const MUSTER_WORT = { kreis: 'Kreis', dreieck: 'Dreieck', quadrat: 'Quadrat' };
 const MUSTER_ZEIT = { hilfe: 12000, pause: 700, daumen: 6000, auftragNochmal: 16000 };
 const mu = { runde: 0, ziele: [], teile: [], vorlage: [], ziehen: null, gesperrt: true, timer: null, nummer: 0,
   versuche: 0, fertig: false, inEcht: false, auftrag: false, mass: null, hilfen: 0, tipps: 0 };
@@ -2114,7 +2114,7 @@ async function muLegen(t, ziel) {
   clearTimeout(mu.timer);
   await warten(400);
   if (!muAktuell(nr)) return;
-  // Fertig: die ganze Reihe rhythmisch, jedes Teil leuchtet – „Rund, spitz, rund, spitz. Ein Muster!“
+  // Fertig: die ganze Reihe rhythmisch, jedes Teil leuchtet – „Kreis, Dreieck, Kreis, Dreieck. Ein Muster!“
   const r = muRunde();
   const reihe = r.art === 'nach' ? mu.ziele.map((x) => mu.teile.find((tt) => tt.drin === x).el)
     : [...mu.vorlage.map((v) => v.el), t.el];

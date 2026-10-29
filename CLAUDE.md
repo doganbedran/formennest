@@ -36,7 +36,7 @@ Konzept: `docs/konzept.md`. Gestaltungsrichtlinie der Familie: https://claude.ai
   Schreibübung); falls je Nachspuren mit Richtung kommt: nur Blau `#1d5fbf` (Start) + Orange `#b8470b` (Pfeile) wie Wortnest.
 - Ansagen als ganze Sätze; „ein/eine“ richtig je Wort (der Kreis, das Dreieck, das Quadrat).
 
-## Stand (Version 17, 2026-10-29)
+## Stand (Version 18, 2026-10-29)
 Fünf Spiele: Passt rein (`pa`, mit Umfahren in Runde 1), Wo ist die Maus? (`ms`), Zeig mir den Kreis (`fo`),
 Klatsch – Stampf (`kl`), Muster legen (`mu`). Gemeinsame Bausteine in `app.js`:
 - `spielBausteine(id, z)`: `aktuell`, `stoppen`, `ansage`, `zaehlen` – Ansagen eines Spiels laufen **nacheinander**

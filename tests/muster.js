@@ -90,6 +90,8 @@
   const alle = [...mu.vorlage.map((v) => v.el), ...mu.ziele.map((z) => z.el), ...mu.teile.map((t) => t.el)].map((e) => e.getBoundingClientRect());
   pruefe(alle.every((r) => r.left >= feldR.left - 1 && r.right <= feldR.right + 1 && r.top >= feldR.top - 1 && r.bottom <= feldR.bottom + 1), 'Etwas ragt heraus');
   pruefe(!alle.some((a, i) => alle.some((b, k) => k > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)), 'Teile überlappen');
+  const vorratBreiten = mu.teile.map((t) => Math.round(t.el.getBoundingClientRect().width));
+  pruefe(vorratBreiten.every((b) => b >= 72 && b >= mu.mass.S), `Lose Teile zu klein: ${vorratBreiten} (Reihe ${Math.round(mu.mass.S)})`);
 
   // 6. Schnelles Hin-und-her: nach dem 3. Fehlversuch legt die App nach 450 ms selbst – legt das Kind in dieser Zeit
   // das andere passende Teil auf denselben Platz, dürfen dort nicht zwei liegen, und die Runde muss fertig werden
@@ -111,6 +113,8 @@
   await warte(700);
   const aufZ0 = mu.teile.filter((t) => t.drin === z0).length;
   pruefe(aufZ0 <= 1, `Schnell nach 3. Versuch: ${aufZ0} Teile auf einem Platz`);
+  const eingelegt = mu.teile.find((t) => t.drin === z0);
+  pruefe(eingelegt && Math.abs(eingelegt.el.getBoundingClientRect().width - mu.mass.S) < 1.5, `Eingelegtes Teil nicht so groß wie die Reihe: ${eingelegt && eingelegt.el.getBoundingClientRect().width} statt ${mu.mass.S}`);
   for (const z of mu.ziele.filter((x) => !x.belegt)) { if (los(z.form)) await schieben(los(z.form), z); }
   await bis(() => mu.runde === 1, 3000);
   pruefe(mu.runde === 1, `Schnell nach 3. Versuch: Runde bleibt hängen (frei: ${mu.ziele.filter((x) => !x.belegt).map((x) => x.form)}, Vorrat: ${mu.teile.filter((t) => !t.drin).map((t) => t.form)})`);

@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 17;
+const APP_VERSION = 18;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -717,13 +717,21 @@ function passtStoppen() {
 }
 
 // Form als SVG-Inhalt (Bezug: Mittelpunkt 50/50, etwa gleiche Fläche ~4500)
+const FORM_FARBEN = {
+  mulde: 'fill="#6e4a30" stroke="#4a3220" stroke-width="3"',
+  teil: 'fill="#f3c56b" stroke="#7a5a2a" stroke-width="3"',
+  // Ring für Hilfe und „Alles passt“: weiß mit dunklem Rand – auch nur an der Helligkeit zu erkennen
+  'ring-dunkel': 'fill="none" stroke="#24150a" stroke-width="22"',
+  'ring-hell': 'fill="none" stroke="#ffffff" stroke-width="13"',
+};
 function formInhalt(form, art) {
-  const farbe = art === 'mulde' ? 'fill="#6e4a30" stroke="#4a3220" stroke-width="3"' : 'fill="#f3c56b" stroke="#7a5a2a" stroke-width="3"';
+  const farbe = FORM_FARBEN[art] || FORM_FARBEN.teil;
   if (form === 'kreis') return `<circle cx="50" cy="50" r="38" ${farbe}/>`;
   if (form === 'quadrat') return `<rect x="16.5" y="16.5" width="67" height="67" rx="3" ${farbe}/>`;
   return `<path d="M50 -8.9 L101 79.4 L-1 79.4 Z" ${farbe} stroke-linejoin="round" transform="translate(0 6)"/>`;
 }
-const formSvg = (form, art, drehung = 0) => `<svg viewBox="-12 -12 124 124" aria-hidden="true"><g transform="rotate(${drehung} 50 50)">${formInhalt(form, art)}</g></svg>`;
+const formSvg = (form, art, drehung = 0) => `<svg viewBox="-12 -12 124 124" aria-hidden="true"><g transform="rotate(${drehung} 50 50)">`
+  + `<g class="form-ring">${formInhalt(form, 'ring-dunkel')}${formInhalt(form, 'ring-hell')}</g>${formInhalt(form, art)}</g></svg>`;
 
 function paRundenZeichnen() {
   $('#passt-runden').innerHTML = `<span class="gruppe">${
@@ -2120,21 +2128,25 @@ function muMasse() {
   const W = feld.clientWidth, H = feld.clientHeight;
   const quer = W > H;
   const S = Math.min(96, (W - 16) / 6.3, H / (quer ? 4.4 : 6.5));
+  // Lose Teile im Vorrat größer (leichter zu greifen, mind. 72 px); höchstens 4 Teile müssen nebeneinander passen
+  const G = Math.min(Math.max(72, S * 1.3), (W - 16) / 4.3);
   const abstand = S * 1.06;
   const reiheX = (i, n) => W / 2 - ((n - 1) * abstand) / 2 + i * abstand;
   // Im Vorrat mehr Luft zwischen den Teilen (leichter zu greifen)
-  const vorratX = (i, n) => { const a = Math.min(S * 1.45, (W - 16 - S) / Math.max(1, n - 1)); return W / 2 - ((n - 1) * a) / 2 + i * a; };
+  const vorratX = (i, n) => { const a = Math.min(G * 1.3, (W - 16 - G) / Math.max(1, n - 1)); return W / 2 - ((n - 1) * a) / 2 + i * a; };
   const oben = quer ? H * 0.2 : H * 0.18;
   const unten = quer ? H * 0.47 : H * 0.36;
   const vorrat = quer ? H * 0.8 : H * 0.62;
-  return { W, H, S, abstand, reiheX, vorratX, oben, unten, vorrat };
+  return { W, H, S, G, abstand, reiheX, vorratX, oben, unten, vorrat };
 }
 
+// Eingelegt so groß wie die Reihe, sonst die größere Vorrat-Größe
 function muSetzen(t, x, y) {
-  const { W, H, S } = mu.mass;
-  t.x = Math.max(S / 2, Math.min(W - S / 2, x));
-  t.y = Math.max(S / 2, Math.min(H - S / 2, y));
-  t.el.style.transform = `translate(${t.x - S / 2}px, ${t.y - S / 2}px)`;
+  const { W, H, S, G } = mu.mass;
+  const g = t.drin ? S : G;
+  t.x = Math.max(g / 2, Math.min(W - g / 2, x));
+  t.y = Math.max(g / 2, Math.min(H - g / 2, y));
+  Object.assign(t.el.style, { width: `${g}px`, height: `${g}px`, transform: `translate(${t.x - g / 2}px, ${t.y - g / 2}px)` });
 }
 
 function muAnordnen() {
@@ -2151,7 +2163,6 @@ function muAnordnen() {
     Object.assign(z.el.style, { left: `${z.x - S / 2}px`, top: `${z.y - S / 2}px`, width: `${S}px`, height: `${S}px` });
   });
   mu.teile.forEach((t, i) => {
-    Object.assign(t.el.style, { width: `${S}px`, height: `${S}px` });
     t.heim = [vorratX(i, mu.teile.length), vorrat];
     if (t.drin) muSetzen(t, t.drin.x, t.drin.y); else muSetzen(t, ...t.heim);
   });

@@ -348,15 +348,17 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 .brett { position: absolute; border-radius: 22px; background: #e9d2b0; border: 4px solid #b98a5a; box-shadow: var(--schatten); }
 .mulde { position: absolute; z-index: 1; border-radius: 16px; transition: box-shadow 0.3s; }
 .mulde svg, .einsatz svg { width: 100%; height: 100%; display: block; overflow: visible; }
-/* Hilfe nach 2 Versuchen: der Rand der richtigen Mulde leuchtet (gelb, heller – nicht nur andere Farbe) */
-.mulde.hinweis svg { filter: drop-shadow(0 0 0 #f5c518) drop-shadow(0 0 6px #f5c518) drop-shadow(0 0 3px #f5c518); }
+/* Hilfe nach 2 Versuchen: um die richtige Mulde pulsiert ein weißer Ring mit dunklem Rand (Helligkeit, nicht Farbe) */
+.form-ring { display: none; }
+.mulde.hinweis .form-ring { display: inline; animation: ring-puls 1.6s ease-in-out infinite; }
+@keyframes ring-puls { 50% { opacity: 0.35; } }
 .einsatz { position: absolute; left: 0; top: 0; z-index: 2; touch-action: none; transition: transform 0.3s ease-out; }
 .einsatz-bild { display: block; width: 100%; height: 100%; transition: transform 0.3s; }
 .einsatz.greift { transition: none; z-index: 5; }
 .einsatz.greift .einsatz-bild { transform: scale(1.08); }
 .einsatz.huepft .einsatz-bild { animation: ding-huepfen 0.4s ease; }
 .einsatz.wackelt .einsatz-bild { animation: wackeln 0.5s ease; }
-.einsatz.leuchtet svg { filter: drop-shadow(0 0 5px #f5c518); }
+.einsatz.leuchtet .form-ring { display: inline; }
 /* Vormachen in echt: ein Finger fährt um den Kreis */
 .passt-vormachen { position: relative; width: min(220px, 55vw, 34dvh); aspect-ratio: 1; margin: auto; align-self: center; }
 .passt-vormachen .rund-bild svg { width: 100%; height: 100%; display: block; }
@@ -365,7 +367,7 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 @keyframes rundherum { from { transform: rotate(0deg) translateY(calc(var(--r) * -1)) rotate(0deg); }
   to { transform: rotate(360deg) translateY(calc(var(--r) * -1)) rotate(-360deg); } }
 #passt-feld .passt-vormachen { top: 50%; transform: translateY(-50%); }
-@media (prefers-reduced-motion: reduce) { .einsatz { transition: none; } .rund-finger { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .einsatz { transition: none; } .rund-finger { animation: none; } .mulde.hinweis .form-ring { animation: none; } }
 
 /* ---------- Wo ist die Maus? Kiste in zwei Ebenen (hinten Inneres, vorn Wand/Deckel/Beine), Maus dazwischen ---------- */
 /* Hand zeigt das Schieben (Passt rein, Maus, Muster): Fingerspitze auf der Mitte des Teils */
@@ -442,7 +444,7 @@ body.laedt #home .spiele-raster { visibility: hidden; }
 .muster-teil.fest { background: var(--papier); box-shadow: var(--schatten); padding: 5px; transition: transform 0.2s; }
 .muster-teil.fest.leuchtet, .muster-teil.los.leuchtet { box-shadow: 0 0 0 4px #f5c518; }
 .muster-teil.fest.huepft { animation: huepfen 0.5s ease; }
-.muster-teil.los { left: 0; top: 0; touch-action: none; transition: transform 0.3s ease-out; padding: 5px;
+.muster-teil.los { left: 0; top: 0; touch-action: none; transition: transform 0.3s ease-out, width 0.3s ease-out, height 0.3s ease-out; padding: 5px;
   background: var(--papier); box-shadow: var(--schatten); }
 .muster-teil.los .figur-bild { display: block; width: 100%; height: 100%; }
 .muster-teil.los.greift { transition: none; z-index: 5; }

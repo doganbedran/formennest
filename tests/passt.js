@@ -68,7 +68,8 @@
   pruefe(!k.drin && !aufBrett && k.el.classList.contains('wackelt'), 'Falsche Mulde nimmt an oder Einsatz bleibt auf dem Brett');
   pruefe(!gesagt.some((g) => /falsch|nein/.test(g)), 'Etwas wie „falsch“ gesagt');
   await schieben(k, mitte(andere('kreis').el));
-  pruefe(mulde('kreis').el.classList.contains('hinweis'), 'Nach 2 Versuchen leuchtet die richtige Mulde nicht');
+  pruefe(mulde('kreis').el.classList.contains('hinweis') && getComputedStyle(mulde('kreis').el.querySelector('.form-ring')).display !== 'none'
+    && getComputedStyle(mulde('quadrat').el.querySelector('.form-ring')).display === 'none', 'Nach 2 Versuchen zeigt die richtige Mulde keinen Ring');
   // 3. Mal: gleitet von selbst hinein
   await schieben(k, mitte(andere('kreis').el));
   await bis(() => k.drin);

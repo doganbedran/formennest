@@ -36,7 +36,7 @@ Konzept: `docs/konzept.md`. Gestaltungsrichtlinie der Familie: https://claude.ai
   Schreibübung); falls je Nachspuren mit Richtung kommt: nur Blau `#1d5fbf` (Start) + Orange `#b8470b` (Pfeile) wie Wortnest.
 - Ansagen als ganze Sätze; „ein/eine“ richtig je Wort (der Kreis, das Dreieck, das Quadrat).
 
-## Stand (Version 16, 2026-10-29)
+## Stand (Version 17, 2026-10-29)
 Fünf Spiele: Passt rein (`pa`, mit Umfahren in Runde 1), Wo ist die Maus? (`ms`), Zeig mir den Kreis (`fo`),
 Klatsch – Stampf (`kl`), Muster legen (`mu`). Gemeinsame Bausteine in `app.js`:
 - `spielBausteine(id, z)`: `aktuell`, `stoppen`, `ansage`, `zaehlen` – Ansagen eines Spiels laufen **nacheinander**
@@ -44,6 +44,7 @@ Klatsch – Stampf (`kl`), Muster legen (`mu`). Gemeinsame Bausteine in `app.js`
   Vorzählen/Vorspielen, wenn die Hand vormacht oder die App selbst einsetzt.
 - `handZeigen(...)`: ☝️ schiebt ein Teil ein Stück zum Ziel und zurück – nach 2× Antippen oder 2 Erinnerungen;
   nach der 3. Erinnerung setzt die App selbst ein (`hilfen`/`tipps` je Spiel, zurückgesetzt beim Einsetzen).
+  Klatsch/Zeig mir (Tippen statt Schieben): 2× wiederholen, dann still die Lösung, nach `…_ZEIT.selbst` zeigt die App sie.
 - `inEcht({...})` für den Auftrag in echt; vorher kurz vormachen. `spielEnde(id, nochmal)` mit 🏠/↻.
 - Kurzfassung je Kind: Option `kurz` (`SPIEL_OPTIONEN`), siehe `SPIEL_INFO`/README.
 - Ansagen: `ansagen.js` + `werkzeuge/audio_erzeugen.py` (nur fehlende Dateien; zum Neuerzeugen .wav löschen).

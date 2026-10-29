@@ -77,8 +77,9 @@
   // 7. Anordnung: Reihe und Knöpfe im Bild
   $('#klatsch .ende-nochmal').click();
 
-  // 8. Ohne Antwort: die Reihe höchstens zweimal wiederholt, danach leuchtet still der passende Knopf
-  KLATSCH_ZEIT.nochmal = 100;
+  // 8. Ohne Antwort: die Reihe höchstens zweimal wiederholt, danach leuchtet still der passende Knopf;
+  //    tippt weiter niemand, setzt die App selbst ein und es geht weiter
+  Object.assign(KLATSCH_ZEIT, { nochmal: 100, selbst: 900 });
   klatschStoppen();
   kl.runde = 0;
   klRundenZeichnen();
@@ -87,8 +88,11 @@
   await bis(() => knopf('k').classList.contains('hinweis'), 4000);
   await warte(400);
   const reihen8 = gesagt.slice(n8).filter((g) => g === 'klatsch-reihe-1').length;
-  pruefe(reihen8 === 3 && knopf('k').classList.contains('hinweis'), `Ohne Antwort: ${reihen8}× vorgespielt, Hinweis ${knopf('k').classList.contains('hinweis')}`);
-  KLATSCH_ZEIT.nochmal = 6000;
+  pruefe(reihen8 === 3 && knopf('k').classList.contains('hinweis') && kl.runde === 0, `Ohne Antwort: ${reihen8}× vorgespielt, Hinweis ${knopf('k').classList.contains('hinweis')}`);
+  await bis(() => kl.runde === 1, 4000);
+  pruefe(kl.runde === 1 && gesagt.slice(n8).includes('klatsch-mach-mit') && klaenge.includes('k'), `Ohne Antwort setzt die App nicht selbst ein: ${gesagt.slice(n8)}`);
+  klatschStoppen();
+  Object.assign(KLATSCH_ZEIT, { nochmal: 6000, selbst: 10000 });
 
   // 9. Kurzfassung (je Kind): nur die zwei leichten Runden, dann der Auftrag
   zustand.kurz = true;

@@ -1,7 +1,7 @@
 'use strict';
 
 // Bei jeder Änderung zusammen mit CACHE in sw.js erhöhen (wird im Elternbereich angezeigt)
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 
 // Nie in fremden Seiten laufen (Schutz vor „Klick-Fallen“, bei denen eine fremde Seite die App unsichtbar einbettet):
 // eingebettet → nur ein Hinweis mit Link, die App startet nicht
@@ -1533,7 +1533,7 @@ window.addEventListener('resize', () => { if ($('#maus').classList.contains('act
 // Zum Schluss in echt: „Such ein Dreieck bei dir zu Hause!“
 const FORMEN_STUFEN = [3, 4, 3, 3];
 const FORMEN_SYMBOL = ['👀', '👂', '🗣️', '🔍'];
-const FORMEN_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 8000, antwort: 5000, auchWeiter: 2200, pause: 900, vormachen: 1500, daumen: 6000, auftragNochmal: 16000 };
+const FORMEN_ZEIT = { weiterOhneTipp: 7000, nochmalFragen: 8000, selbst: 10000, antwort: 5000, auchWeiter: 2200, pause: 900, vormachen: 1500, daumen: 6000, auftragNochmal: 16000 };
 const FORMEN_FARBE = '#5b4636';
 // Formen in Ecken-Koordinaten (Kreis ohne Ecken); Bezug 100×100, gleiche Fläche wie bei „Passt rein“
 const FORMEN_GRUND = {
@@ -1640,7 +1640,12 @@ async function foFragen(nr) {
     fo.gesperrt = true;
     if (!(await foAnsage(nr, `formen-wo-${fo.ziel}`))) return;
     fo.gesperrt = false;
-    fo.timer = setTimeout(() => foAktuell(nr) && foZielKarte() && foZielKarte().classList.add('pulsiert'), FORMEN_ZEIT.nochmalFragen);
+    // Danach pulsiert still die gesuchte Karte; tippt weiter niemand, zeigt die App sie selbst
+    fo.timer = setTimeout(() => {
+      if (!foAktuell(nr) || !foZielKarte()) return;
+      foZielKarte().classList.add('pulsiert');
+      fo.timer = setTimeout(() => foAktuell(nr) && !fo.gesperrt && foLoesungZeigen(nr, true), FORMEN_ZEIT.selbst);
+    }, FORMEN_ZEIT.nochmalFragen);
   }, FORMEN_ZEIT.nochmalFragen);
 }
 
@@ -1729,12 +1734,21 @@ async function foGetippt(form, btn) {
     await warten(400);
     foFragen(nr);
   } else {
-    ziel.classList.add('richtig');
-    animieren(ziel, 'huepft');
-    if (!(await foAnsage(nr, foNamen(fo.ziel)))) return;
-    await warten(FORMEN_ZEIT.pause);
-    foWeiter(nr);
+    foLoesungZeigen(nr);
   }
+}
+
+// Lösung zeigen: die gesuchte Karte hüpft und wird benannt, dann weiter (ohne Tippen zählt sie als unsicher)
+async function foLoesungZeigen(nr, ohneTipp = false) {
+  fo.gesperrt = true;
+  if (ohneTipp) { fo.serie = 0; fo.drei = false; fo.unsicher.add(fo.ziel); }
+  const ziel = foZielKarte();
+  ziel.classList.remove('pulsiert');
+  ziel.classList.add('richtig');
+  animieren(ziel, 'huepft');
+  if (!(await foAnsage(nr, foNamen(fo.ziel)))) return;
+  await warten(FORMEN_ZEIT.pause);
+  foWeiter(nr);
 }
 
 function foWeiter(nr) {
@@ -1842,7 +1856,7 @@ const KLATSCH_RUNDEN = [
   { reihe: ['k', 's', 's', 'k', 's'], fehlt: 's' },
 ];
 const KLATSCH_BILD = { k: '👏', s: '🦶' };
-const KLATSCH_ZEIT = { nochmal: 9000, pause: 700, daumen: 6000, auftragNochmal: 16000 };
+const KLATSCH_ZEIT = { nochmal: 9000, selbst: 10000, pause: 700, daumen: 6000, auftragNochmal: 16000 };
 const kl = { runde: 0, versuche: 0, wiederholt: 0, gesperrt: true, timer: null, nummer: 0, letzterTipp: -Infinity, fertig: false, inEcht: false, auftrag: false };
 const klBausteine = spielBausteine('klatsch', kl);
 const { aktuell: klAktuell, ansage: klAnsage, zaehlen: klZaehlen } = klBausteine;
@@ -1929,10 +1943,15 @@ async function klFragen(nr) {
   if (!(await klReiheVorspielen(nr, `klatsch-reihe-${kl.runde + 1}`, klBilder()))) return;
   kl.gesperrt = false;
   clearTimeout(kl.timer);
-  // Ohne Antwort höchstens zweimal wiederholen, danach leuchtet nur noch der passende Knopf – still
+  // Ohne Antwort höchstens zweimal wiederholen, danach leuchtet still der passende Knopf; tippt weiter niemand,
+  // setzt die App selbst ein
   kl.timer = setTimeout(() => {
     if (!klAktuell(nr) || kl.gesperrt) return;
-    if (kl.wiederholt >= 2) { $(`#klatsch-feld .klatsch-knopf[data-art="${klRunde().fehlt}"]`).classList.add('hinweis'); return; }
+    if (kl.wiederholt >= 2) {
+      $(`#klatsch-feld .klatsch-knopf[data-art="${klRunde().fehlt}"]`).classList.add('hinweis');
+      kl.timer = setTimeout(() => klAktuell(nr) && !kl.gesperrt && klSelbstEinsetzen(nr), KLATSCH_ZEIT.selbst);
+      return;
+    }
     kl.wiederholt++;
     klFragen(nr);
   }, KLATSCH_ZEIT.nochmal);
@@ -1967,17 +1986,21 @@ async function klGetippt(art, btn) {
   luecke.textContent = '';
   luecke.classList.remove('blass');
   const richtigKnopf = $(`#klatsch-feld .klatsch-knopf[data-art="${klRunde().fehlt}"]`);
-  if (kl.versuche >= 3) {
-    luecke.textContent = KLATSCH_BILD[klRunde().fehlt];
-    luecke.dataset.art = klRunde().fehlt;
-    luecke.classList.add('gefuellt');
-    klKlang(klRunde().fehlt);
-    await warten(450);
-    klRichtig(nr);
-    return;
-  }
+  if (kl.versuche >= 3) { klSelbstEinsetzen(nr); return; }
   if (kl.versuche === 2) richtigKnopf.classList.add('hinweis');
   klFragen(nr);
+}
+
+// Die App setzt das passende Bild selbst in die Lücke (nach dem 3. Versuch oder wenn lange niemand tippt)
+async function klSelbstEinsetzen(nr) {
+  kl.gesperrt = true;
+  const luecke = $('#klatsch-feld .luecke');
+  luecke.textContent = KLATSCH_BILD[klRunde().fehlt];
+  luecke.dataset.art = klRunde().fehlt;
+  luecke.classList.add('gefuellt');
+  klKlang(klRunde().fehlt);
+  await warten(450);
+  if (klAktuell(nr)) klRichtig(nr);
 }
 
 // Passt: „Mach mit!“ – die ganze Reihe einmal mit Klang (das Kind klatscht und stampft mit), dann die nächste Runde

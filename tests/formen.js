@@ -89,6 +89,21 @@
   await bis(() => $('#formen .spiel-ende') && !$('#formen .spiel-ende').hidden);
   pruefe(zuletzt() === `formen-gefunden-${fo.welt}`, `Schluss: ${zuletzt()}`);
 
+  // 5b. Stufe 2 ohne Antwort: zweimal fragen, dann pulsiert still die Karte; danach zeigt die App sie selbst
+  Object.assign(FORMEN_ZEIT, { nochmalFragen: 100, selbst: 900 });
+  formenStoppen();
+  Object.assign(fo, { stufe: 1, schritt: 0, fertig: false, inEcht: false, unsicher: new Set(), serie: 0, drei: false });
+  const n5 = gesagt.length;
+  foStufe2();
+  await bis(() => foZielKarte() && foZielKarte().classList.contains('pulsiert'), 4000);
+  await warte(400);
+  const ziel5 = fo.ziel;
+  pruefe(fo.schritt === 0 && gesagt.slice(n5).join() === `formen-wo-${ziel5},formen-wo-${ziel5}`, `Ohne Antwort zu früh weiter: ${gesagt.slice(n5)}`);
+  await bis(() => fo.schritt === 1, 4000);
+  pruefe(fo.schritt === 1 && gesagt.slice(n5).includes(`formen-ist-${ziel5}`) && fo.unsicher.has(ziel5), `Ohne Antwort zeigt die App nicht selbst: ${gesagt.slice(n5)}`);
+  formenStoppen();
+  Object.assign(FORMEN_ZEIT, { nochmalFragen: 6000, selbst: 10000 });
+
   // 6. Kurzfassung (je Kind): drei Gruppen, nach „Sag es“ gleich der Auftrag (ohne 🔍)
   zustand.kurz = true;
   formenStoppen();

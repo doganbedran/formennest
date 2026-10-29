@@ -32,8 +32,26 @@ Konzept: `docs/konzept.md`. Gestaltungsrichtlinie der Familie: https://claude.ai
   Raum: „auf/in/unter“ vor „neben/hinter/vor“. Nach 2 Versuchen Hilfe, nach 3 Lösung zeigen und weiter.
   Jede Runde endet mit einem Auftrag in der echten Welt (vormachen → „Jetzt in echt!“ → Erwachsener hält 👍).
 - Farben: Akzent **Violett `#7a3e9d`** (Weiß 7,0:1; deutlich anders als Wortnest-Orange und Zahlennest-Petrol, auch bei
-  Farbsehschwächen). Beim Nachspuren/Umfahren nur Blau `#1d5fbf` (Start) + Orange `#b8470b` (Pfeile) wie Wortnest.
+  Farbsehschwächen). Formen **umfahren** (Passt rein) bewusst ohne Startpunkt und Pfeile (Tasten, keine
+  Schreibübung); falls je Nachspuren mit Richtung kommt: nur Blau `#1d5fbf` (Start) + Orange `#b8470b` (Pfeile) wie Wortnest.
 - Ansagen als ganze Sätze; „ein/eine“ richtig je Wort (der Kreis, das Dreieck, das Quadrat).
+
+## Stand (Version 16, 2026-10-29)
+Fünf Spiele: Passt rein (`pa`, mit Umfahren in Runde 1), Wo ist die Maus? (`ms`), Zeig mir den Kreis (`fo`),
+Klatsch – Stampf (`kl`), Muster legen (`mu`). Gemeinsame Bausteine in `app.js`:
+- `spielBausteine(id, z)`: `aktuell`, `stoppen`, `ansage`, `zaehlen` – Ansagen eines Spiels laufen **nacheinander**
+  (`z.offen` = laufende/wartende); Kinder dürfen während Aufträgen/Erinnerungen schon schieben, gesperrt nur beim
+  Vorzählen/Vorspielen, wenn die Hand vormacht oder die App selbst einsetzt.
+- `handZeigen(...)`: ☝️ schiebt ein Teil ein Stück zum Ziel und zurück – nach 2× Antippen oder 2 Erinnerungen;
+  nach der 3. Erinnerung setzt die App selbst ein (`hilfen`/`tipps` je Spiel, zurückgesetzt beim Einsetzen).
+- `inEcht({...})` für den Auftrag in echt; vorher kurz vormachen. `spielEnde(id, nochmal)` mit 🏠/↻.
+- Kurzfassung je Kind: Option `kurz` (`SPIEL_OPTIONEN`), siehe `SPIEL_INFO`/README.
+- Ansagen: `ansagen.js` + `werkzeuge/audio_erzeugen.py` (nur fehlende Dateien; zum Neuerzeugen .wav löschen).
+  Schlecht klingende Einzelwörter: `ALLEIN_SCHLECHT` (aus Trägersatz schneiden), `LANGSAMER` (z. B. Dreieck); der
+  User wählt aus nummerierten Hörproben.
+
+Offen: neue Ansagen vom User abhören lassen (Muster-Reihen, „Mach mit!“, Umfahren-Ansagen); Idee: laufende Ansage
+beim Einsetzen sanft beenden (noch nicht entschieden); echte Beobachtung mit den Kindern auswerten.
 
 ## Arbeitsablauf je Änderung
 1. Testserver: `.venv/bin/python werkzeuge/testserver.py 8767 &` (Port 8767; Wortnest 8765, Zahlennest 8766).
@@ -52,7 +70,11 @@ Konzept: `docs/konzept.md`. Gestaltungsrichtlinie der Familie: https://claude.ai
 ## Testen – Stolperfallen (wie Zahlennest)
 - `.venv` und `.stimmen` sind lokale Verweise auf `../Kinder-Lernapp/` (Piper „Thorsten“); `./werkzeuge/alle_tests.sh start`
   startet nur Läufe, deren Name so beginnt. Testserver nach einem Neustart des Rechners neu starten (sonst „KEIN BILD“).
-- Solange es kaum Spiele gibt, legen Tests mit `probeSpiele([...])` (`tests/probespiele.js`) vorgetäuschte Spiele an.
+- Tests für Startseite/Regal/Kinder legen mit `probeSpiele([...])` (`tests/probespiele.js`) vorgetäuschte Spiele an.
+- Prüfungen in Tests nur auf Ansagen ab einem gemerkten Index (`gesagt.slice(n)`), sonst zählen alte Runden mit;
+  🔊 wirkt erst, wenn `!z.offen`. Zeitgeber, die schon laufen, ändern sich nicht mit `…_ZEIT` – im Test neu starten.
+- Inline-`style="…"` ist durch die CSP gesperrt: Größen per `el.style` setzen.
+- Probe-Seiten zum Anschauen: `tests/zz-*.js/html` aus `tests/passt.html` ableiten, danach wieder löschen.
 - **Sicherheitsregel (CSP):** keine eingebetteten `<script>`, keine `on…`-Attribute, kein `eval`, keine fremden
   Adressen – auch nicht in Testseiten. Test `sicherheit`, Beschreibung `docs/technik.md`.
 - Firefox-Snap: Profile/Screenshots nur unter `~/snap/firefox/common/formennest-test/`; Firefox direkt starten.
